@@ -32,9 +32,21 @@ WHERE
 OR
 	(inchecktijdstip IS NOT NULL AND stoel IS NULL);
 
--- Opgave 3: Het inchecktijdstip van een passagier moet voor het vertrektijdstip van een vlucht liggen.
+/****************************************************************************/
+/* Opgave 2: 2.	Als er een passagier aan een vlucht is						*/
+/* toegevoegd mogen de gegevens van die vlucht niet meer gewijzigd worden.	*/
+/****************************************************************************/
 
------------------------------------------
+/****************************************************************************/
+/* 	*/
+/* 	*/
+/****************************************************************************/
+
+/****************************************************************************/
+/* Opgave 3: Het inchecktijdstip van een passagier moet						*/
+/* voor het vertrektijdstip van een vlucht liggen.							*/
+/****************************************************************************/
+
 -- Trigger
 CREATE TRIGGER trgPassagierVoorVlucht_inchecktijdstip_IU
 ON
@@ -88,12 +100,14 @@ FROM
 WHERE
 	p.inchecktijdstip < v.vertrektijdstip;
 
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Opgave 5: Per passagier mogen maximaal 3 objecten worden ingecheckt. Tevens geldt: het totaalgewicht
---			 van de bagage van een passagier mag het maximaal per persoon toegestane gewicht op een vlucht
---			 niet overschrijden. Mocht de datapopulatie het aanbrengen van de constraint niet toestaan, neem
---			 dan maatregelen in uw uitwerkingsdocument.
+
+/****************************************************************************/
+/* Opgave 5: Per passagier mogen maximaal 3 objecten worden ingecheckt. 	*/
+/* Tevens geldt: het totaalgewicht van de bagage van een passagier mag 		*/
+/* het maximaal per persoon toegestane gewicht op een vlucht niet			*/
+/* overschrijden. Mocht de datapopulatie het aanbrengen van de constraint	*/
+/* niet toestaan, neem dan maatregelen in uw uitwerkingsdocument.			*/
+/****************************************************************************/	 
 
 -----------------------------------------
 -- Trigger
