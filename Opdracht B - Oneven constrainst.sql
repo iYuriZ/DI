@@ -341,7 +341,9 @@ BEGIN
 		> (SELECT max_totaalgewicht
 		   FROM vlucht
 		   WHERE vluchtnummer = (SELECT vluchtnummer FROM inserted))
-		THROW 50001, 'The maximum total weight is too low', 1
+		BEGIN
+			;THROW 50001, 'The maximum total weight is too low', 1
+		END
     END TRY
     BEGIN CATCH
         ;THROW
@@ -447,19 +449,9 @@ AS
 BEGIN
 	IF @@ROWCOUNT = 0
 		RETURN
-	SET NOCOUNT ON
-	
+	SET NOCOUNT ON	
 	BEGIN TRY
-		IF EXISTS (SELECT *
-				   FROM inserted i
-				   WHERE i.stoel IS NOT NULL
-				   AND EXISTS (SELECT vluchtnummer, stoel
-				   FROM PassagierVoorVlucht
-				   GROUP BY vluchtnummer, stoel
-				   HAVING COUNT(*) >= 2))
-		BEGIN
-			;THROW 50000, 'Een vlucht en stoelnummer moeten uniek zijn', 1
-		END
+		
 	END TRY
 	BEGIN CATCH
 		;THROW
