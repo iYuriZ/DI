@@ -1,8 +1,11 @@
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Opgave 1: Voor elke passagier zijn het stoelnummer en het inchecktijdstip of beide niet ingevuld of beide wel ingevuld
+-- 
+/****************************************************************************/
+/* 1.	Voor elke passagier zijn het stoelnummer en het						*/
+/* inchecktijdstip of beide niet ingevuld of beide wel ingevuld				*/
+/****************************************************************************/
 
------------------------------------------
 -- Constraint
 ALTER TABLE PassagierVoorVlucht ADD CONSTRAINT CHK_IncheckTijdStip_Stoel CHECK ((inchecktijdstip IS NULL AND stoel IS NULL) OR 
 																				(inchecktijdstip IS NOT NULL AND stoel IS NOT NULL));
@@ -33,17 +36,52 @@ OR
 	(inchecktijdstip IS NOT NULL AND stoel IS NULL);
 
 /****************************************************************************/
-/* Opgave 2: 2.	Als er een passagier aan een vlucht is						*/
-/* toegevoegd mogen de gegevens van die vlucht niet meer gewijzigd worden.	*/
+/* 2.	Als er een passagier aan een vlucht is toegevoegd					*/
+/* mogen de gegevens van die vlucht niet meer gewijzigd worden.				*/
 /****************************************************************************/
 
-/****************************************************************************/
-/* 	*/
-/* 	*/
-/****************************************************************************/
+--Trigger
+DROP TRIGGER IF EXISTS dbo.TRG_NO_UPDATE
+GO
+CREATE TRIGGER TRG_NO_UPDATE ON Vlucht 
+AFTER UPDATE
+AS
+BEGIN
+    BEGIN TRY
+		IF EXISTS (SELECT pv.*
+				   FROM vlucht v INNER JOIN PassagierVoorVlucht pv
+				   ON v.vluchtnummer = pv.vluchtnummer
+				   WHERE v.vluchtnummer = (SELECT vluchtnummer
+										   FROM inserted))
+		THROW 50001, 'No update allowed when the flight has passangers', 1
+    END TRY
+    BEGIN CATCH
+        ;THROW
+    END CATCH
+END
+GO
+
+-------------------------------------
+-- Werkende test
+BEGIN TRAN
+UPDATE vlucht
+SET max_aantal_psgrs = 110 WHERE vluchtnummer = 5314
+ROLLBACK TRAN
+
+-- Niet werkende test
+UPDATE vlucht
+SET max_aantal_psgrs = 110 WHERE vluchtnummer = 5317
+
+-- SELECT statements voor controle
+SELECT * FROM PassagierVoorVlucht
+
+SELECT pv.*
+FROM vlucht v INNER JOIN PassagierVoorVlucht pv
+ON v.vluchtnummer = pv.vluchtnummer
+WHERE v.vluchtnummer = 5314
 
 /****************************************************************************/
-/* Opgave 3: Het inchecktijdstip van een passagier moet						*/
+/* 3.	Het inchecktijdstip van een passagier moet							*/
 /* voor het vertrektijdstip van een vlucht liggen.							*/
 /****************************************************************************/
 
@@ -100,16 +138,75 @@ FROM
 WHERE
 	p.inchecktijdstip < v.vertrektijdstip;
 
+/****************************************************************************/
+/* 4.	Elke vlucht heeft volgens de specs een toegestaan maximum aantal 	*/
+/* passagiers. Zorg ervoor dat deze regel niet overschreden kan worden.		*/
+/****************************************************************************/
+
+DROP PROCEDURE IF EXISTS dbo.PROC_COUNT_PASSANGERS
+GO
+CREATE PROCEDURE dbo.PROC_COUNT_PASSANGERS
+@vluchtnr INT,
+@passagiernr INT,
+@balienr INT,
+@inchecktijd DATETIME,
+@stoel CHAR(3)
+AS
+BEGIN
+	BEGIN TRY
+		IF (SELECT COUNT(*)
+			FROM PassagierVoorVlucht
+			WHERE vluchtnummer = @vluchtnr)
+		> (SELECT max_aantal_psgrs
+		   FROM vlucht
+		   WHERE vluchtnummer = @vluchtnr)
+		THROW 50001, 'Passenger limit exceeded for that flight', 1
+
+		ELSE INSERT INTO PassagierVoorVlucht
+			 VALUES (@vluchtnr, @passagiernr, @balienr, @inchecktijd, @stoel)
+	END TRY
+	BEGIN CATCH
+		THROW;
+	END CATCH
+END
+
+-----------------------------------
+-- test setup om de trigger (opgave 2.) te vermijden
+BEGIN TRANSACTION
+DROP TRIGGER IF EXISTS dbo.TRG_NO_UPDATE
+GO
+UPDATE vlucht SET max_aantal_psgrs = 10 WHERE vluchtnummer = 5317
+ROLLBACK TRANSACTION
+
+-- er is nog plek in de vlucht
+BEGIN TRAN
+EXEC dbo.PROC_COUNT_PASSANGERS 850,  5316, 1, '2004-02-05 22:25', 97
+ROLLBACK TRAN
+
+-- de vlucht is al vol
+EXEC dbo.PROC_COUNT_PASSANGERS 855,  5317, 3, '2004-02-05 22:25', 80
+
+-- SELECT statements voor controle
+SELECT * 
+FROM PassagierVoorVlucht
+WHERE vluchtnummer = 5316
+
+SELECT max_aantal_psgrs
+FROM vlucht
+WHERE vluchtnummer = 5317
+
+SELECT COUNT(passagiernummer), vluchtnummer
+FROM PassagierVoorVlucht
+GROUP BY vluchtnummer
 
 /****************************************************************************/
-/* Opgave 5: Per passagier mogen maximaal 3 objecten worden ingecheckt. 	*/
+/* 5.	Per passagier mogen maximaal 3 objecten worden ingecheckt. 			*/
 /* Tevens geldt: het totaalgewicht van de bagage van een passagier mag 		*/
 /* het maximaal per persoon toegestane gewicht op een vlucht niet			*/
 /* overschrijden. Mocht de datapopulatie het aanbrengen van de constraint	*/
 /* niet toestaan, neem dan maatregelen in uw uitwerkingsdocument.			*/
 /****************************************************************************/	 
 
------------------------------------------
 -- Trigger
 CREATE TRIGGER trgObject_aantal_gewicht_I
 ON
@@ -213,17 +310,65 @@ GROUP BY
 	o.vluchtnummer,
 	v.max_ppgewicht
 HAVING
-	SUM(o.gewicht) > v.max_ppgewicht;
+	SUM(o.gewicht) > v.max_ppgewicht;		 
 
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Opgave 7: Voor een passagier is de combinatie (vlucht, stoel) natuurlijk uniek (zie de specs). Maar de
---			 mogelijke stoelnummers zijn op het moment van toevoegen van een passagier vaak nog niet bekend.
---			 Er moeten dus voor passagiers op dezelfde vlucht null-waarden voor hun stoelen in te vullen zijn.
---			 Maak dit mogelijk, zonder de uniciteits-eis voor concrete stoelnummers te schenden (maak geen gebruik
---			 van een zogenaamd filtered index).
+/****************************************************************************/
+/* 6.	Elke vlucht heeft volgens de specs een toegestaan maximum aantal 	*/
+/* passagiers (map, een toegestaan maximum totaalgewicht (mt), en een		*/
+/* maximum gewicht dat een persoon mee mag nemen (mgp). Zorg ervoor dat		*/
+/* altijd geld map*mgp <= mt.												*/
+/****************************************************************************/
 
------------------------------------------
+DROP TRIGGER IF EXISTS dbo.TRG_MAX_WEIGHT
+GO
+CREATE TRIGGER TRG_MAX_WEIGHT ON Vlucht 
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    BEGIN TRY
+		IF (SELECT max_aantal_psgrs
+			FROM vlucht
+			WHERE vluchtnummer = (SELECT vluchtnummer FROM inserted)) 
+		* (SELECT max_ppgewicht 
+		   FROM vlucht
+		   WHERE vluchtnummer = (SELECT vluchtnummer FROM inserted)) 
+		> (SELECT max_totaalgewicht
+		   FROM vlucht
+		   WHERE vluchtnummer = (SELECT vluchtnummer FROM inserted))
+		THROW 50001, 'The maximum total weight is too low', 1
+    END TRY
+    BEGIN CATCH
+        ;THROW
+    END CATCH
+END
+GO
+
+---------------------------------
+-- werkende test
+BEGIN TRAN
+UPDATE vlucht
+SET max_aantal_psgrs = 120 WHERE vluchtnummer = 5314
+ROLLBACK TRAN
+
+-- niet werkende test
+BEGIN TRAN
+UPDATE vlucht
+SET max_aantal_psgrs = 126 WHERE vluchtnummer = 5314
+ROLLBACK TRAN
+
+-- SELECT statements voor controle
+SELECT *
+FROM vlucht
+
+/****************************************************************************/
+/* 7.	Voor een passagier is de combinatie (vlucht, stoel) natuurlijk		*/
+/* uniek (zie de specs). Maar de mogelijke stoelnummers zijn op het moment	*/
+/* van toevoegen van een passagier vaak nog niet bekend. Er moeten dus voor	*/
+/* passagiers op dezelfde vlucht null-waarden voor hun stoelen in te vullen	*/
+/* zijn. Maak dit mogelijk, zonder uniciteits-eis voor concrete stoelnummers*/
+/* te schenden (maak geen gebruik van een zogenaamd filtered index).		*/
+/****************************************************************************/
+
 -- Trigger
 CREATE TRIGGER trgPassagierVoorVlucht_stoel_IU
 ON
@@ -280,11 +425,40 @@ GROUP BY
 HAVING
 	COUNT(*) >= 2;
 
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Opgave 9: Elke maatschappij moet een balie hebben
+/****************************************************************************/
+/* 8.	De lijst met balies waar kan worden ingecheckt voor een vlucht is	*/
+/* beperkt. Niet alle balies zijn bruikbaar voor iedere bestemming, en niet */
+/* alle balies zijn te gebruiken door iedere maatschappij. Als er balies aan*/
+/* een vlucht gekoppeld worden, mogen dat alléén balies zijn die toegestaan */
+/* zijn voor de maatschappij en voor de bestemming van de vlucht. Er kunnen */
+/* aan één vlucht meerdere balies gekoppeld worden. De passagier checkt		*/
+/* uiteindelijk bij één van deze balies in. Let op; dit laatste is dus ook	*/
+/* een constraint.															*/
+/****************************************************************************/
 
------------------------------------------
+--------------------------------
+-- werkende test
+
+-- niet werkende test
+
+-- SELECT statements voor controle
+
+SELECT *
+FROM IncheckenVoorVlucht
+
+SELECT *
+FROM IncheckenBijMaatschappij
+
+SELECT *
+FROM vlucht
+
+SELECT *
+FROM PassagierVoorVlucht
+
+/****************************************************************************/
+/* 9.	Elke maatschappij moet een balie hebben								*/
+/****************************************************************************/
+
 -- Stored Procedure
 CREATE PROCEDURE prcMaatschappij_balie
 	@maatschappijCode CHAR(2),
@@ -334,11 +508,16 @@ SELECT
 FROM
 	Maatschappij m;
 
+/****************************************************************************/
+/* 10.	Een passagier mag niet boeken op  vluchten in overlappende			*/
+/* periodes. Verander de kolommen vertrektijdstip en aankomsttijdstip van	*/ 
+/* table Vlucht in NOT NULL. Update eventueel vooraf de data zodat de 		*/
+/* NOT NULL	constraint niet overtreden wordt.								*/
+/****************************************************************************/
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
--- Stored Procedures	: 1
--- Triggers				: 3
+-- Stored Procedures	: 2
+-- Triggers				: 5
 -- Constraints			: 1
 
