@@ -491,7 +491,7 @@ FROM PassagierVoorVlucht
 /****************************************************************************/
 
 -- Stored Procedure
-CREATE PROCEDURE prcMaatschappij_balie
+ALTER PROCEDURE prcMaatschappij_balie
 	@balieNummer INT,
 	@maatschappijCode CHAR(2),
 	@maatschappijNaam VARCHAR(255)
@@ -500,11 +500,11 @@ BEGIN
 	BEGIN TRY
 		IF NOT EXISTS (SELECT balienummer FROM Balie WHERE balienummer = @balienummer)
 		BEGIN
-			;THROW 'Deze balie bestaat niet', 5000
+			;THROW 50000, 'Deze balie bestaat niet', 1
 		END
 		
 		INSERT INTO Maatschappij (maatschappijcode, naam)
-		VALUES (@maatschappijcode, @naam);
+		VALUES (@maatschappijcode, @maatschappijNaam);
 		
 		INSERT INTO IncheckenBijMaatschappij (balienummer, maatschappijcode)
 		VALUES (@balienummer, @maatschappijcode);
@@ -518,13 +518,18 @@ GO
 -----------------------------------------
 -- Werkende test
 BEGIN TRANSACTION
-EXEC prcMaatschappij_balie @balieNummer = 1 @maatschappijCode = 'TT', @maatschappijNaam = 'MaatschappijTest'
+EXEC prcMaatschappij_balie @balieNummer = 1, @maatschappijCode = 'TT', @maatschappijNaam = 'MaatschappijTest'
 
 SELECT *
 FROM Maatschappij m
 INNER JOIN IncheckenBijMaatschappij ibm ON ibm.maatschappijcode = m.maatschappijcode
 INNER JOIN Balie b ON b.balienummer = ibm.balienummer
 WHERE m.maatschappijcode = 'TT';
+ROLLBACK TRANSACTION
+
+-- Niet werkende test
+BEGIN TRANSACTION
+	EXEC prcMaatschappij_balie @balieNummer = 999, @maatschappijCode = 'tt', @maatschappijNaam = 'MaatschappijTest'
 ROLLBACK TRANSACTION
 
 -----------------------------------------
