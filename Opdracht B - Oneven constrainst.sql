@@ -47,6 +47,9 @@ CREATE TRIGGER TRG_NO_UPDATE ON Vlucht
 AFTER UPDATE
 AS
 BEGIN
+	IF @@ROWCOUNT = 0
+		RETURN
+	SET NOCOUNT ON
     BEGIN TRY
 		IF EXISTS (SELECT pv.*
 				   FROM vlucht v INNER JOIN PassagierVoorVlucht pv
@@ -325,6 +328,9 @@ CREATE TRIGGER TRG_MAX_WEIGHT ON Vlucht
 AFTER INSERT, UPDATE
 AS
 BEGIN
+	IF @@ROWCOUNT = 0
+		RETURN
+	SET NOCOUNT ON
     BEGIN TRY
 		IF (SELECT max_aantal_psgrs
 			FROM vlucht
@@ -370,9 +376,7 @@ FROM vlucht
 /****************************************************************************/
 
 -- Trigger
-CREATE TRIGGER trgPassagierVoorVlucht_stoel_IU
-ON
-	PassagierVoorVlucht
+CREATE TRIGGER trgPassagierVoorVlucht_stoel_IU ON PassagierVoorVlucht
 AFTER INSERT, UPDATE
 AS
 BEGIN
@@ -435,6 +439,33 @@ HAVING
 /* uiteindelijk bij één van deze balies in. Let op; dit laatste is dus ook	*/
 /* een constraint.															*/
 /****************************************************************************/
+DROP TRIGGER IF EXISTS dbo.CHECK_BALIE_MAATSCHAPPIJ
+GO
+CREATE TRIGGER dbo.CHECK_BALIE ON PassagierVoorVlucht
+AFTER INSERT, UPDATE
+AS
+BEGIN
+	IF @@ROWCOUNT = 0
+		RETURN
+	SET NOCOUNT ON
+	
+	BEGIN TRY
+		IF EXISTS (SELECT *
+				   FROM inserted i
+				   WHERE i.stoel IS NOT NULL
+				   AND EXISTS (SELECT vluchtnummer, stoel
+				   FROM PassagierVoorVlucht
+				   GROUP BY vluchtnummer, stoel
+				   HAVING COUNT(*) >= 2))
+		BEGIN
+			;THROW 50000, 'Een vlucht en stoelnummer moeten uniek zijn', 1
+		END
+	END TRY
+	BEGIN CATCH
+		;THROW
+	END CATCH
+END
+GO
 
 --------------------------------
 -- werkende test
