@@ -461,17 +461,17 @@ FROM PassagierVoorVlucht
 
 -- Stored Procedure
 CREATE PROCEDURE prcMaatschappij_balie
+	@balieNummer INT,
 	@maatschappijCode CHAR(2),
-	@naam VARCHAR(255)
+	@maatschappijNaam VARCHAR(255)
 AS
 BEGIN
 	BEGIN TRY
-		DECLARE @balienummer INT
-		SELECT @balienummer = balienummer + 1 FROM Balie;
+		IF NOT EXISTS (SELECT balienummer FROM Balie WHERE balienummer = @balienummer)
+		BEGIN
+			;THROW 'Deze balie bestaat niet', 5000
+		END
 		
-		INSERT INTO Balie (balienummer)
-		VALUES (@balienummer);
-
 		INSERT INTO Maatschappij (maatschappijcode, naam)
 		VALUES (@maatschappijcode, @naam);
 		
@@ -487,7 +487,7 @@ GO
 -----------------------------------------
 -- Werkende test
 BEGIN TRANSACTION
-EXEC prcMaatschappij_balie @maatschappijCode = 'TT', @naam = 'MaatschappijTest'
+EXEC prcMaatschappij_balie @balieNummer = 1 @maatschappijCode = 'TT', @maatschappijNaam = 'MaatschappijTest'
 
 SELECT *
 FROM Maatschappij m
