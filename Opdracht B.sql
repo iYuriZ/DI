@@ -1,6 +1,3 @@
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- 
 /****************************************************************************/
 /* 1.	Voor elke passagier zijn het stoelnummer en het						*/
 /* inchecktijdstip of beide niet ingevuld of beide wel ingevuld				*/
@@ -187,7 +184,7 @@ EXEC dbo.PROC_COUNT_PASSANGERS 850,  5316, 1, '2004-02-05 22:25', 97
 ROLLBACK TRAN
 
 -- de vlucht is al vol
-EXEC dbo.PROC_COUNT_PASSANGERS 855,  5317, 3, '2004-02-05 22:25', 80
+EXEC dbo.PROC_COUNT_PASSANGERS 855,  5320, 3, '2004-02-05 22:25', 80
 
 -- SELECT statements voor controle
 SELECT * 
@@ -441,7 +438,7 @@ HAVING
 /* uiteindelijk bij één van deze balies in. Let op; dit laatste is dus ook	*/
 /* een constraint.															*/
 /****************************************************************************/
-DROP TRIGGER IF EXISTS dbo.CHECK_BALIE_MAATSCHAPPIJ
+DROP TRIGGER IF EXISTS dbo.CHECK_BALIE
 GO
 CREATE TRIGGER dbo.CHECK_BALIE ON PassagierVoorVlucht
 AFTER INSERT, UPDATE
@@ -451,13 +448,18 @@ BEGIN
 		RETURN
 	SET NOCOUNT ON	
 	BEGIN TRY
-		
+		IF NOT EXISTS (SELECT *
+					   FROM IncheckenVoorVlucht
+					   WHERE vluchtnummer = (SELECT vluchtnummer
+											 FROM inserted)
+					   AND balienummer = (SELECT balienummer
+										  FROM inserted))
+		THROW 50000, 'You cannot check in at that booth for that flight', 1
 	END TRY
 	BEGIN CATCH
 		;THROW
 	END CATCH
 END
-GO
 
 --------------------------------
 -- werkende test
@@ -465,6 +467,8 @@ GO
 -- niet werkende test
 
 -- SELECT statements voor controle
+SELECT *
+FROM IncheckenVoorBestemming
 
 SELECT *
 FROM IncheckenVoorVlucht
