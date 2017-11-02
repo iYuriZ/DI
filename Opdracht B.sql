@@ -33,8 +33,8 @@ OR
 	(inchecktijdstip IS NOT NULL AND stoel IS NULL);
 
 /****************************************************************************/
-/* 2.	Als er een passagier aan een vlucht is toegevoegd					*/
-/* mogen de gegevens van die vlucht niet meer gewijzigd worden.				*/
+/* 2.	Als er een passagier aan een vlucht is toegevoegd					*/ ----------------------------------------------------------------------------------
+/* mogen de gegevens van die vlucht niet meer gewijzigd worden.				*/ -- Read committed
 /****************************************************************************/
 
 --Trigger
@@ -53,7 +53,7 @@ BEGIN
 				   ON v.vluchtnummer = pv.vluchtnummer
 				   WHERE v.vluchtnummer = (SELECT vluchtnummer
 										   FROM inserted))
-		THROW 50001, 'No update allowed when the flight has passangers', 1
+		THROW 50001, 'No update allowed when the flight has passengers', 1
     END TRY
     BEGIN CATCH
         ;THROW
@@ -139,13 +139,13 @@ WHERE
 	p.inchecktijdstip < v.vertrektijdstip;
 
 /****************************************************************************/
-/* 4.	Elke vlucht heeft volgens de specs een toegestaan maximum aantal 	*/
-/* passagiers. Zorg ervoor dat deze regel niet overschreden kan worden.		*/
-/****************************************************************************/
+/* 4.	Elke vlucht heeft volgens de specs een toegestaan maximum aantal 	*/ ----------------------------------------------------------------------
+/* passagiers. Zorg ervoor dat deze regel niet overschreden kan worden.		*/ -- Isolation level ophogen
+/****************************************************************************/ -- Index passagiervoorvlucht
 
-DROP PROCEDURE IF EXISTS dbo.PROC_COUNT_PASSANGERS
+DROP PROCEDURE IF EXISTS dbo.PROC_COUNT_PASSENGERS
 GO
-CREATE PROCEDURE dbo.PROC_COUNT_PASSANGERS
+CREATE PROCEDURE dbo.PROC_COUNT_PASSENGERS
 @vluchtnr INT,
 @passagiernr INT,
 @balienr INT,
@@ -162,7 +162,8 @@ BEGIN
 		   WHERE vluchtnummer = @vluchtnr)
 		THROW 50001, 'Passenger limit exceeded for that flight', 1
 
-		ELSE INSERT INTO PassagierVoorVlucht
+		ELSE 
+			INSERT INTO PassagierVoorVlucht
 			 VALUES (@vluchtnr, @passagiernr, @balienr, @inchecktijd, @stoel)
 	END TRY
 	BEGIN CATCH
@@ -180,11 +181,11 @@ ROLLBACK TRANSACTION
 
 -- er is nog plek in de vlucht
 BEGIN TRAN
-EXEC dbo.PROC_COUNT_PASSANGERS 850,  5316, 1, '2004-02-05 22:25', 97
+EXEC dbo.PROC_COUNT_PASSENGERS 850,  5316, 1, '2004-02-05 22:25', 97
 ROLLBACK TRAN
 
 -- de vlucht is al vol
-EXEC dbo.PROC_COUNT_PASSANGERS 855,  5320, 3, '2004-02-05 22:25', 80
+EXEC dbo.PROC_COUNT_PASSENGERS 855,  5320, 3, '2004-02-05 22:25', 80
 
 -- SELECT statements voor controle
 SELECT * 
@@ -318,48 +319,65 @@ HAVING
 /* maximum gewicht dat een persoon mee mag nemen (mgp). Zorg ervoor dat		*/
 /* altijd geld map*mgp <= mt.												*/
 /****************************************************************************/
-
-DROP TRIGGER IF EXISTS dbo.TRG_MAX_WEIGHT
-GO
-CREATE TRIGGER TRG_MAX_WEIGHT ON Vlucht 
-AFTER INSERT, UPDATE
+CREATE PROCEDURE prc_VluchtMaxGewicht
+	@vluchtnummer INT,
+	@gatecode CHAR(1),
+	@maatschappijcode CHAR(2),
+	@luchthavencode CHAR(3),
+	@vliegtuigtype CHAR(30),
+	@max_aantal_psgrs NUMERIC(5,0),
+	@max_totaalgewicht NUMERIC(5,0),
+	@max_ppgewicht NUMERIC(5,2),
+	@vertrektijdstip DATETIME,
+	@aankomsttijdstip DATETIME
 AS
 BEGIN
-	IF @@ROWCOUNT = 0
-		RETURN
-	SET NOCOUNT ON
-    BEGIN TRY
-		IF (SELECT max_aantal_psgrs
-			FROM vlucht
-			WHERE vluchtnummer = (SELECT vluchtnummer FROM inserted)) 
-		* (SELECT max_ppgewicht 
-		   FROM vlucht
-		   WHERE vluchtnummer = (SELECT vluchtnummer FROM inserted)) 
-		> (SELECT max_totaalgewicht
-		   FROM vlucht
-		   WHERE vluchtnummer = (SELECT vluchtnummer FROM inserted))
-		BEGIN
-			;THROW 50001, 'The maximum total weight is too low', 1
-		END
-    END TRY
-    BEGIN CATCH
-        ;THROW
-    END CATCH
+	IF (@max_aantal_psgrs * @max_ppgewicht > @max_totaalgewicht)
+	BEGIN
+		;THROW 50000, 'The maximum total weight is too low', 1
+	END
+
+	INSERT INTO Vlucht (vluchtnummer, gatecode, maatschappijcode, luchthavencode, vliegtuigtype, max_aantal_psgrs, max_totaalgewicht, max_ppgewicht, vertrektijdstip, aankomsttijdstip)
+	VALUES (@vluchtnummer, @gatecode, @maatschappijcode, @luchthavencode, @vliegtuigtype, @max_aantal_psgrs, @max_totaalgewicht, @max_ppgewicht, @vertrektijdstip, @aankomsttijdstip)
 END
 GO
 
 ---------------------------------
 -- werkende test
-BEGIN TRAN
-UPDATE vlucht
-SET max_aantal_psgrs = 120 WHERE vluchtnummer = 5314
-ROLLBACK TRAN
+BEGIN TRANSACTION
+DECLARE @vertrek DATETIME = GETDATE() -2
+DECLARE @aankomst DATETIME = GETDATE() + 1
+
+EXEC prc_VluchtMaxGewicht
+	@vluchtnummer = 5319,
+	@gatecode = 'C',
+	@maatschappijcode = 'KL',
+	@luchthavencode = 'DUB',
+	@vliegtuigtype = 'Boeing 747',
+	@max_aantal_psgrs = 120,
+	@max_totaalgewicht = 2500,
+	@max_ppgewicht = 20,
+	@vertrektijdstip = @vertrek,
+	@aankomsttijdstip = @aankomst;
+ROLLBACK TRANSACTION
 
 -- niet werkende test
-BEGIN TRAN
-UPDATE vlucht
-SET max_aantal_psgrs = 126 WHERE vluchtnummer = 5314
-ROLLBACK TRAN
+BEGIN TRANSACTION
+DECLARE @vertrek DATETIME = GETDATE() -2
+DECLARE @aankomst DATETIME = GETDATE() + 1
+
+EXEC prc_VluchtMaxGewicht
+	@vluchtnummer = 5319,
+	@gatecode = 'C',
+	@maatschappijcode = 'KL',
+	@luchthavencode = 'DUB',
+	@vliegtuigtype = 'Boeing 747',
+	@max_aantal_psgrs = 120,
+	@max_totaalgewicht = 20,
+	@max_ppgewicht = 20,
+	@vertrektijdstip = @vertrek,
+	@aankomsttijdstip = @aankomst;
+ROLLBACK TRANSACTION
 
 -- SELECT statements voor controle
 SELECT *
@@ -432,15 +450,15 @@ HAVING
 /* 8.	De lijst met balies waar kan worden ingecheckt voor een vlucht is	*/
 /* beperkt. Niet alle balies zijn bruikbaar voor iedere bestemming, en niet */
 /* alle balies zijn te gebruiken door iedere maatschappij. Als er balies aan*/
-/* een vlucht gekoppeld worden, mogen dat alléén balies zijn die toegestaan */
+/* een vlucht gekoppeld worden, mogen dat alleen balies zijn die toegestaan */
 /* zijn voor de maatschappij en voor de bestemming van de vlucht. Er kunnen */
-/* aan één vlucht meerdere balies gekoppeld worden. De passagier checkt		*/
-/* uiteindelijk bij één van deze balies in. Let op; dit laatste is dus ook	*/
+/* aan een vlucht meerdere balies gekoppeld worden. De passagier checkt		*/
+/* uiteindelijk bij een van deze balies in. Let op; dit laatste is dus ook	*/
 /* een constraint.															*/
 /****************************************************************************/
-DROP TRIGGER IF EXISTS dbo.CHECK_BALIE
+DROP TRIGGER IF EXISTS dbo.trg_IncheckenVoorVlucht_IU
 GO
-CREATE TRIGGER dbo.CHECK_BALIE ON PassagierVoorVlucht
+CREATE TRIGGER dbo.trg_IncheckenVoorVlucht_IU ON IncheckenVoorVlucht
 AFTER INSERT, UPDATE
 AS
 BEGIN
@@ -448,13 +466,50 @@ BEGIN
 		RETURN
 	SET NOCOUNT ON	
 	BEGIN TRY
-		IF NOT EXISTS (SELECT *
-					   FROM IncheckenVoorVlucht
-					   WHERE vluchtnummer = (SELECT vluchtnummer
-											 FROM inserted)
-					   AND balienummer = (SELECT balienummer
-										  FROM inserted))
-		THROW 50000, 'You cannot check in at that booth for that flight', 1
+		
+		IF EXISTS(SELECT * FROM inserted i
+				  -- Controleren of de vlucht de juiste maatschappij heeft
+				  WHERE balienummer NOT IN (SELECT ibm.balienummer FROM Vlucht v
+				  						INNER JOIN Maatschappij m
+				  						ON m.maatschappijcode = v.maatschappijcode
+				  						INNER JOIN IncheckenBijMaatschappij ibm
+				  						ON ibm.maatschappijcode = m.maatschappijcode
+										WHERE v.vluchtnummer = i.vluchtnummer)
+				  -- Controleren of de vlucht de juiste bestemming heeft
+				  OR balienummer NOT IN (SELECT ivb.balienummer FROM Vlucht v
+				  					  INNER JOIN Luchthaven lh
+				  					  ON lh.luchthavencode = v.luchthavencode
+				  					  INNER JOIN IncheckenVoorBestemming ivb
+				  					  ON ivb.luchthavencode = lh.luchthavencode
+									  WHERE v.vluchtnummer = i.vluchtnummer))
+		BEGIN
+			;THROW 50000, 'Not allowed to add this booth to this flight', 1
+		END
+				  						
+	END TRY
+	BEGIN CATCH
+		;THROW
+	END CATCH
+END
+
+DROP TRIGGER IF EXISTS dbo.trg_PassagierVoorVlucht_IU
+GO
+CREATE TRIGGER dbo.trg_PassagierVoorVlucht_IU ON PassagierVoorVlucht
+AFTER INSERT, UPDATE
+AS
+BEGIN
+	IF @@ROWCOUNT = 0
+		RETURN
+	SET NOCOUNT ON	
+	BEGIN TRY
+		
+		IF NOT EXISTS (SELECT * FROM inserted i WHERE balienummer IN (SELECT balienummer FROM IncheckenVoorVlucht ivv
+																	  INNER JOIN Vlucht v ON v.vluchtnummer = ivv.vluchtnummer
+																	  WHERE v.vluchtnummer = i.vluchtnummer))
+		BEGIN
+			;THROW 50000, 'Cannot check in on that booth', 1
+		END
+				  						
 	END TRY
 	BEGIN CATCH
 		;THROW
@@ -463,12 +518,31 @@ END
 
 --------------------------------
 -- werkende test
+BEGIN TRANSACTION
+DELETE FROM IncheckenVoorVlucht WHERE vluchtnummer = 5314;
+
+INSERT INTO IncheckenVoorVlucht
+VALUES (3, 5314);
+ROLLBACK TRANSACTION
+
+BEGIN TRANSACTION
+	INSERT INTO PassagierVoorVlucht
+	VALUES (850, 5314, 3, DATEDIFF(year, -10, GETDATE()), 4);
+ROLLBACK TRANSACTION
 
 -- niet werkende test
+INSERT INTO IncheckenVoorVlucht
+VALUES (2, 5314);
+
+INSERT INTO PassagierVoorVlucht
+VALUES (850, 5314, 2, GETDATE(), 4);
 
 -- SELECT statements voor controle
 SELECT *
 FROM IncheckenVoorBestemming
+
+SELECT * FROM
+Balie;
 
 SELECT *
 FROM IncheckenVoorVlucht
@@ -487,7 +561,7 @@ FROM PassagierVoorVlucht
 /****************************************************************************/
 
 -- Stored Procedure
-ALTER PROCEDURE prcMaatschappij_balie
+CREATE PROCEDURE prcMaatschappij_balie
 	@balieNummer INT,
 	@maatschappijCode CHAR(2),
 	@maatschappijNaam VARCHAR(255)
@@ -544,12 +618,38 @@ FROM
 /* 10.	Een passagier mag niet boeken op  vluchten in overlappende			*/
 /* periodes. Verander de kolommen vertrektijdstip en aankomsttijdstip van	*/ 
 /* table Vlucht in NOT NULL. Update eventueel vooraf de data zodat de 		*/
-/* NOT NULL	constraint niet overtreden wordt.								*/
+/* NOT NULL	constraint niet overtreden wordt.								*/ -- Index passagierVoorVlucht (tijdstippen OF stoel (constraint 7))
 /****************************************************************************/
+UPDATE Vlucht
+SET aankomsttijdstip = DATEDIFF(year, 1, GETDATE())
+WHERE aankomsttijdstip IS NULL;
+
+ALTER TABLE Vlucht
+ALTER COLUMN vertrektijdstip DATETIME NOT NULL;
+ALTER TABLE Vlucht
+ALTER COLUMN aankomsttijdstip DATETIME NOT NULL;
+
+CREATE TRIGGER trg_PassagierVoorVlucht_overlapping_IU
+ON
+	PassagierVoorVlucht
+AFTER INSERT, UPDATE
+AS
+BEGIN
+	IF @@ROWCOUNT = 0
+		RETURN
+	SET NOCOUNT ON
+
+	BEGIN TRY
+		IF EXISTS (SELECT * FROM inserted WHERE 
+	END TRY
+	BEGIN CATCH
+		;THROW
+	END CATCH
+END
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Stored Procedures	: 2
+-- Stored Procedures	: 3
 -- Triggers				: 5
 -- Constraints			: 1
 
