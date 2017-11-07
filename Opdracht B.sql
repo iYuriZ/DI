@@ -621,13 +621,19 @@ FROM
 /* NOT NULL	constraint niet overtreden wordt.								*/ -- Index passagierVoorVlucht (tijdstippen OF stoel (constraint 7))
 /****************************************************************************/
 UPDATE Vlucht
-SET aankomsttijdstip = DATEDIFF(year, 1, GETDATE())
+SET aankomsttijdstip = vertrektijdstip + 1
 WHERE aankomsttijdstip IS NULL;
+
+UPDATE Vlucht
+SET vertrektijdstip = GETDATE() - 1
+WHERE vertrektijdstip IS NULL
+GO
 
 ALTER TABLE Vlucht
 ALTER COLUMN vertrektijdstip DATETIME NOT NULL;
 ALTER TABLE Vlucht
 ALTER COLUMN aankomsttijdstip DATETIME NOT NULL;
+GO
 
 CREATE TRIGGER trg_PassagierVoorVlucht_overlapping_IU
 ON
@@ -640,12 +646,52 @@ BEGIN
 	SET NOCOUNT ON
 
 	BEGIN TRY
-		IF EXISTS (SELECT * FROM inserted WHERE 
+		-- Controleren of de passagier geen vlucht wil boeken die overlapt in een vlucht waar hij al in zit
+		IF EXISTS (SELECT *
+				   FROM inserted i INNER JOIN Vlucht original_v
+				   ON original_v.vluchtnummer = i.vluchtnummer
+				   WHERE i.passagiernummer IN (SELECT passagiernummer
+											   FROM PassagierVoorVlucht pvv INNER JOIN Vlucht v
+											   ON v.vluchtnummer = pvv.vluchtnummer
+											   WHERE original_v.vertrektijdstip BETWEEN v.vertrektijdstip AND v.aankomsttijdstip
+											   AND v.vluchtnummer != original_v.vluchtnummer))
+		BEGIN
+			;THROW 50000, 'Cannot book an overlapping flight', 1
+		END
 	END TRY
 	BEGIN CATCH
 		;THROW
 	END CATCH
 END
+GO
+
+-----------------------------------------
+-- Werkende test
+BEGIN TRANSACTION
+	INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
+	VALUES (850, 5316, 1, '2004-02-01 12:00:00', 3);
+
+	SELECT * FROM Vlucht
+	WHERE vluchtnummer IN (SELECT vluchtnummer
+						   FROM PassagierVoorVlucht
+						   WHERE passagiernummer = 850);
+ROLLBACK TRANSACTION
+
+-- Niet werkende test
+BEGIN TRANSACTION
+	UPDATE vlucht SET
+	vertrektijdstip = '2004-01-31 23:37:00',
+	aankomsttijdstip = vertrektijdstip + 100 -- 100 dagen toevoegen aan aankomsttijdstip
+	WHERE vluchtnummer = 5317;
+
+	INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
+	VALUES (1500, 5316, 1, '2004-02-01 12:00:00', 3);
+
+	SELECT * FROM Vlucht
+	WHERE vluchtnummer IN (SELECT vluchtnummer
+						   FROM PassagierVoorVlucht
+						   WHERE passagiernummer = 1500);
+ROLLBACK TRANSACTION
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
