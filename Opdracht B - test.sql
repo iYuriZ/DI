@@ -108,8 +108,8 @@ ROLLBACK TRANSACTION
 BEGIN TRANSACTION
 	BEGIN TRY
 		EXEC PROC_COUNT_PASSENGERS
-			@vluchtnr = 850, 
-			@passagiernr = 5316,
+			@passagiernr = 850, 
+			@vluchtnr = 5316,
 			@balienr = 1,
 			@inchecktijd = '2004-01-31 22:25',
 			@stoel = 97
@@ -126,8 +126,8 @@ ROLLBACK TRANSACTION
 BEGIN TRANSACTION
 	BEGIN TRY
 		EXEC PROC_COUNT_PASSENGERS
-			@vluchtnr = 855, 
-			@passagiernr = 5320,
+			@passagiernr = 855, 
+			@vluchtnr = 5320,
 			@balienr = 3,
 			@inchecktijd = '2004-02-05 22:25',
 			@stoel = 80
