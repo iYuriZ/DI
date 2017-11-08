@@ -1,3 +1,5 @@
+SET NOCOUNT ON
+
 /****************************************************************************/
 /* 1.	Voor elke passagier zijn het stoelnummer en het						*/
 /* inchecktijdstip of beide niet ingevuld of beide wel ingevuld				*/
@@ -5,14 +7,15 @@
 
 -- Werkende test
 BEGIN TRANSACTION
-	TRY
+	BEGIN TRY
 		INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
 		VALUES (850, 5315, 1, NULL, NULL),
-		   (850, 5316, 1, GETDATE(), 20);
+		   (850, 5316, 1, '2004-01-31 08:00', 20);
 		   
 		PRINT 'Constraint 1 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
+		;THROW
 		PRINT 'Constraint 1 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION
@@ -59,7 +62,7 @@ BEGIN TRANSACTION
 	END TRY
 	BEGIN CATCH
 		PRINT 'Constraint 2 - test 2: Geslaagd'
-	END TRY
+	END CATCH
 ROLLBACK TRANSACTION
 
 /****************************************************************************/
@@ -72,11 +75,12 @@ BEGIN TRANSACTION
 	BEGIN TRY
 		UPDATE PassagierVoorVlucht SET incheckTijdstip = '2004-02-05 22:00' WHERE vluchtnummer = 5317; -- 5 records
 		INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-		VALUES (1002, 5317, 1, '2004-02-05 22:00', 1); -- 1 record
+		VALUES (1002, 5317, 2, '2004-02-05 22:00', 1); -- 1 record
 		
 		PRINT 'Constraint 3 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
+		;THROW
 		PRINT 'Constraint 3 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION
@@ -103,16 +107,17 @@ ROLLBACK TRANSACTION
 -- Werkende test
 BEGIN TRANSACTION
 	-- Trigger van constraint 2 vermijden
-	DROP TRIGGER IF EXISTS dbo.TRG_NO_UPDATE
+	DROP TRIGGER IF EXISTS TRG_NO_UPDATE
 	GO
 	UPDATE vlucht SET max_aantal_psgrs = 10 WHERE vluchtnummer = 5317
 
 	BEGIN TRY
-		EXEC dbo.PROC_COUNT_PASSENGERS 850,  5316, 1, '2004-02-05 22:25', 97
+		EXEC PROC_COUNT_PASSENGERS 850,  5316, 1, '2004-01-31 22:25', 97
 		
 		PRINT 'Constraint 4 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
+		;THROW
 		PRINT 'Constraint 4 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION
@@ -120,12 +125,12 @@ ROLLBACK TRANSACTION
 -- Niet werkende test
 BEGIN TRANSACTION
 	-- Trigger van constraint 2 vermijden
-	DROP TRIGGER IF EXISTS dbo.TRG_NO_UPDATE
+	DROP TRIGGER IF EXISTS TRG_NO_UPDATE
 	GO
 	UPDATE vlucht SET max_aantal_psgrs = 10 WHERE vluchtnummer = 5317
 
 	BEGIN TRY
-		EXEC dbo.PROC_COUNT_PASSENGERS 855,  5320, 3, '2004-02-05 22:25', 80
+		EXEC PROC_COUNT_PASSENGERS 855,  5320, 3, '2004-02-05 22:25', 80
 		
 		PRINT 'Constraint 4 - test 2: Gefaald'
 	END TRY
@@ -211,12 +216,13 @@ ROLLBACK TRANSACTION
 /* altijd geld map*mgp <= mt.												*/
 /****************************************************************************/
 
+-- Variabelen initialiseren
+DECLARE @vertrek DATETIME = GETDATE() -2
+DECLARE @aankomst DATETIME = GETDATE() + 1
+
 -- werkende test
 BEGIN TRANSACTION
 	BEGIN TRY
-		DECLARE @vertrek DATETIME = GETDATE() -2
-		DECLARE @aankomst DATETIME = GETDATE() + 1
-
 		EXEC prc_VluchtMaxGewicht
 			@vluchtnummer = 5319,
 			@gatecode = 'C',
@@ -239,9 +245,6 @@ ROLLBACK TRANSACTION
 -- niet werkende test
 BEGIN TRANSACTION
 	BEGIN TRY
-		DECLARE @vertrek DATETIME = GETDATE() -2
-		DECLARE @aankomst DATETIME = GETDATE() + 1
-
 		EXEC prc_VluchtMaxGewicht
 			@vluchtnummer = 5319,
 			@gatecode = 'C',
@@ -275,11 +278,12 @@ ROLLBACK TRANSACTION
 BEGIN TRANSACTION
 	BEGIN TRY
 		INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-		VALUES (1002, 5317, 1, '2004-02-05 22:00', 20);
+		VALUES (1002, 5317, 2, '2004-02-05 22:00', 20);
 		
 		PRINT 'Constraint 7 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
+		;THROW
 		PRINT 'Constraint 7 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION
