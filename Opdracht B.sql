@@ -9,8 +9,8 @@ ALTER TABLE PassagierVoorVlucht ADD CONSTRAINT CHK_IncheckTijdStip_Stoel CHECK (
 GO
 
 /****************************************************************************/
-/* 2.	Als er een passagier aan een vlucht is toegevoegd					*/ ----------------------------------------------------------------------------------
-/* mogen de gegevens van die vlucht niet meer gewijzigd worden.				*/ -- Read committed
+/* 2.	Als er een passagier aan een vlucht is toegevoegd					*/
+/* mogen de gegevens van die vlucht niet meer gewijzigd worden.				*/
 /****************************************************************************/
 DROP TRIGGER IF EXISTS TRG_NO_UPDATE
 GO
@@ -272,7 +272,7 @@ GO
 /* van toevoegen van een passagier vaak nog niet bekend. Er moeten dus voor	*/
 /* passagiers op dezelfde vlucht null-waarden voor hun stoelen in te vullen	*/
 /* zijn. Maak dit mogelijk, zonder uniciteits-eis voor concrete stoelnummers*/
-/* te schenden (maak geen gebruik van een zogenaamd filtered index).		*/
+/* te schenden (maak geen gebruik van een zogenaamd filtered index).		*/ -- Read committed
 /****************************************************************************/
 
 -- Trigger

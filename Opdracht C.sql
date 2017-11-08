@@ -1,92 +1,4 @@
 /****************************************************************************/
-/*	 							Constraint 2								*/
-/****************************************************************************/
-CREATE TRIGGER TRG_NO_UPDATE ON Vlucht 
-AFTER UPDATE
-AS
-BEGIN
-	IF @@ROWCOUNT = 0
-		RETURN
-	SET NOCOUNT ON
-	SET XACT_ABORT ON
-
-	DECLARE @transactions AS INT = @@TRANCOUNT
-
-    BEGIN TRY
-		-- Transactie beginnen / opslaan
-		IF @transactions > 0
-		BEGIN
-			SAVE TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			BEGIN TRANSACTION
-		END
-
-		IF EXISTS (SELECT pv.*
-				   FROM vlucht v INNER JOIN PassagierVoorVlucht pv
-				   ON v.vluchtnummer = pv.vluchtnummer
-				   WHERE v.vluchtnummer = (SELECT vluchtnummer
-										   FROM inserted))
-		BEGIN
-			;THROW 50001, 'No update allowed when the flight has passengers', 1
-		END
-		
-		WAITFOR DELAY '00:00:10'
-
-		-- Transactie doorvoeren
-		IF @transactions = 0
-		BEGIN
-			COMMIT TRANSACTION
-		END
-    END TRY
-    BEGIN CATCH
-        ;THROW
-
-		-- Transactie terugdraaien
-		IF @transactions > 0
-		BEGIN
-			ROLLBACK TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			ROLLBACK TRANSACTION
-		END
-    END CATCH
-END
-GO
-
-----------------------------------------------------------
--- Read uncommitted
-
--- T1
-SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-BEGIN TRANSACTION
-	
-ROLLBACK TRANSACTION
-
--- T2
-SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-BEGIN TRANSACTION
-	
-ROLLBACK TRANSACTION
-
-----------------------------------------------------------
--- Read committed
-
--- T1
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-BEGIN TRANSACTION
-
-ROLLBACK TRANSACTION
-
--- T2
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-BEGIN TRANSACTION
-
-ROLLBACK TRANSACTION
-
-/****************************************************************************/
 /*	 							Constraint 4								*/
 /****************************************************************************/
 CREATE PROCEDURE dbo.PROC_COUNT_PASSENGERS
@@ -179,4 +91,99 @@ ROLLBACK TRANSACTION
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
 BEGIN TRANSACTION
 
+ROLLBACK TRANSACTION
+
+/****************************************************************************/
+/*	 							Constraint 7								*/
+/****************************************************************************/
+DROP TRIGGER IF EXISTS trgPassagierVoorVlucht_stoel_IU;
+GO
+CREATE TRIGGER trgPassagierVoorVlucht_stoel_IU ON PassagierVoorVlucht
+AFTER INSERT, UPDATE
+AS
+BEGIN
+	IF @@ROWCOUNT = 0
+		RETURN
+	SET NOCOUNT ON
+	
+	DECLARE @transactions AS INT = @@TRANCOUNT
+
+	BEGIN TRY
+		-- Transactie beginnen / opslaan
+		IF @transactions > 0
+		BEGIN
+			SAVE TRANSACTION procTransaction
+		END
+		ELSE
+		BEGIN
+			BEGIN TRANSACTION
+		END
+
+		IF EXISTS (SELECT *
+				   FROM inserted i
+				   WHERE i.stoel IS NOT NULL
+				   AND EXISTS (SELECT vluchtnummer, stoel
+				   FROM PassagierVoorVlucht
+				   GROUP BY vluchtnummer, stoel
+				   HAVING COUNT(*) >= 2))
+		BEGIN
+			;THROW 50000, 'Een vlucht en stoelnummer moeten uniek zijn', 1
+		END
+		
+		WAITFOR DELAY '00:00:10'
+
+		-- Transactie doorvoeren
+		IF @transactions = 0
+		BEGIN
+			COMMIT TRANSACTION
+		END
+	END TRY
+	BEGIN CATCH
+		;THROW
+
+		-- Transactie terugdraaien
+		IF @transactions > 0
+		BEGIN
+			ROLLBACK TRANSACTION procTransaction
+		END
+		ELSE
+		BEGIN
+			ROLLBACK TRANSACTION
+		END
+	END CATCH
+END
+GO
+
+----------------------------------------------------------
+-- Read uncommitted
+
+-- T1
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+BEGIN TRANSACTION
+	INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
+	VALUES (1555, 5315, 4, '2004-01-31 08:45', 3);
+ROLLBACK TRANSACTION
+
+-- T2
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+BEGIN TRANSACTION
+	INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
+	VALUES (1500, 5315, 4, '2004-01-31 08:45', 3);
+ROLLBACK TRANSACTION
+
+----------------------------------------------------------
+-- Read committed
+
+-- T1
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+	INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
+	VALUES (1555, 5315, 4, '2004-01-31 08:45', 3);
+ROLLBACK TRANSACTION
+
+-- T2
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+	INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
+	VALUES (1500, 5315, 4, '2004-01-31 08:45', 3);
 ROLLBACK TRANSACTION
