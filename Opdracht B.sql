@@ -154,8 +154,8 @@ BEGIN
 		END
 		ELSE
 		BEGIN 
-			INSERT INTO PassagierVoorVlucht
-			 VALUES (@vluchtnr, @passagiernr, @balienr, @inchecktijd, @stoel)
+			INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
+			 VALUES (@passagiernr, @vluchtnr, @balienr, @inchecktijd, @stoel)
 		END
 	END TRY
 	BEGIN CATCH

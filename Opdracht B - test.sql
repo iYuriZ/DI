@@ -15,7 +15,6 @@ BEGIN TRANSACTION
 		PRINT 'Constraint 1 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
-		;THROW
 		PRINT 'Constraint 1 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION
@@ -80,7 +79,6 @@ BEGIN TRANSACTION
 		PRINT 'Constraint 3 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
-		;THROW
 		PRINT 'Constraint 3 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION
@@ -117,7 +115,6 @@ BEGIN TRANSACTION
 		PRINT 'Constraint 4 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
-		;THROW
 		PRINT 'Constraint 4 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION
@@ -283,7 +280,6 @@ BEGIN TRANSACTION
 		PRINT 'Constraint 7 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
-		;THROW
 		PRINT 'Constraint 7 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION
