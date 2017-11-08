@@ -121,13 +121,23 @@ ROLLBACK TRANSACTION
 
 -- Niet werkende test
 BEGIN TRANSACTION
+	DELETE FROM PassagierVoorVlucht WHERE vluchtnummer = 5316;
+	UPDATE Vlucht SET max_aantal_psgrs = 1 WHERE vluchtnummer = 5316;
+
 	BEGIN TRY
 		EXEC PROC_COUNT_PASSENGERS
-			@passagiernr = 855, 
-			@vluchtnr = 5320,
-			@balienr = 3,
-			@inchecktijd = '2004-02-05 22:25',
+			@passagiernr = 850, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
 			@stoel = 80
+
+		EXEC PROC_COUNT_PASSENGERS
+			@passagiernr = 1002, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 81
 		
 		PRINT 'Constraint 4 - test 2: Gefaald'
 	END TRY

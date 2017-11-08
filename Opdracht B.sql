@@ -143,19 +143,16 @@ CREATE PROCEDURE PROC_COUNT_PASSENGERS
 AS
 BEGIN
 	BEGIN TRY
-		IF (SELECT COUNT(*)
-			FROM PassagierVoorVlucht
-			WHERE vluchtnummer = @vluchtnr)
-		> (SELECT max_aantal_psgrs
-		   FROM vlucht
-		   WHERE vluchtnummer = @vluchtnr)
+		IF NOT EXISTS (SELECT * FROM Vlucht v WHERE
+					v.vluchtnummer = @vluchtnr AND
+					max_aantal_psgrs > (SELECT COUNT(*) FROM PassagierVoorVlucht WHERE vluchtnummer = v.vluchtnummer))
 		BEGIN
 			;THROW 50001, 'Passenger limit exceeded for that flight', 1
 		END
 		ELSE
-		BEGIN 
+		BEGIN
 			INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-			 VALUES (@passagiernr, @vluchtnr, @balienr, @inchecktijd, @stoel)
+			VALUES (@passagiernr, @vluchtnr, @balienr, @inchecktijd, @stoel)
 		END
 	END TRY
 	BEGIN CATCH
