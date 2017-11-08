@@ -106,13 +106,13 @@ ROLLBACK TRANSACTION
 
 -- Werkende test
 BEGIN TRANSACTION
-	-- Trigger van constraint 2 vermijden
-	DROP TRIGGER IF EXISTS TRG_NO_UPDATE
-	GO
-	UPDATE vlucht SET max_aantal_psgrs = 10 WHERE vluchtnummer = 5317
-
 	BEGIN TRY
-		EXEC PROC_COUNT_PASSENGERS 850,  5316, 1, '2004-01-31 22:25', 97
+		EXEC PROC_COUNT_PASSENGERS
+			@vluchtnr = 850, 
+			@passagiernr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 97
 		
 		PRINT 'Constraint 4 - test 1: Geslaagd'
 	END TRY
@@ -124,13 +124,13 @@ ROLLBACK TRANSACTION
 
 -- Niet werkende test
 BEGIN TRANSACTION
-	-- Trigger van constraint 2 vermijden
-	DROP TRIGGER IF EXISTS TRG_NO_UPDATE
-	GO
-	UPDATE vlucht SET max_aantal_psgrs = 10 WHERE vluchtnummer = 5317
-
 	BEGIN TRY
-		EXEC PROC_COUNT_PASSENGERS 855,  5320, 3, '2004-02-05 22:25', 80
+		EXEC PROC_COUNT_PASSENGERS
+			@vluchtnr = 855, 
+			@passagiernr = 5320,
+			@balienr = 3,
+			@inchecktijd = '2004-02-05 22:25',
+			@stoel = 80
 		
 		PRINT 'Constraint 4 - test 2: Gefaald'
 	END TRY
