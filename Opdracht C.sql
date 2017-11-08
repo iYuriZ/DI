@@ -1,7 +1,9 @@
 /****************************************************************************/
 /*	 							Constraint 4								*/
 /****************************************************************************/
-CREATE PROCEDURE dbo.PROC_COUNT_PASSENGERS
+DROP PROCEDURE IF EXISTS PROC_COUNT_PASSENGERS
+GO
+CREATE PROCEDURE PROC_COUNT_PASSENGERS
 	@vluchtnr INT,
 	@passagiernr INT,
 	@balienr INT,
@@ -10,21 +12,18 @@ CREATE PROCEDURE dbo.PROC_COUNT_PASSENGERS
 AS
 BEGIN
 	BEGIN TRY
-		IF (SELECT COUNT(*)
-			FROM PassagierVoorVlucht
-			WHERE vluchtnummer = @vluchtnr)
-		> (SELECT max_aantal_psgrs
-		   FROM vlucht
-		   WHERE vluchtnummer = @vluchtnr)
+		IF NOT EXISTS (SELECT * FROM Vlucht v WHERE
+					v.vluchtnummer = @vluchtnr AND
+					max_aantal_psgrs > (SELECT COUNT(*) FROM PassagierVoorVlucht WHERE vluchtnummer = v.vluchtnummer))
 		BEGIN
 			;THROW 50001, 'Passenger limit exceeded for that flight', 1
 		END
 		ELSE
-		BEGIN 
+		BEGIN
 			WAITFOR DELAY '00:00:10'
 			
-			INSERT INTO PassagierVoorVlucht
-			 VALUES (@vluchtnr, @passagiernr, @balienr, @inchecktijd, @stoel)
+			INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
+			VALUES (@passagiernr, @vluchtnr, @balienr, @inchecktijd, @stoel)
 		END
 	END TRY
 	BEGIN CATCH
@@ -39,13 +38,23 @@ GO
 -- T1
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 BEGIN TRANSACTION
-
+	EXEC PROC_COUNT_PASSENGERS
+			@passagiernr = 850, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 97
 ROLLBACK TRANSACTION
 
 -- T2
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 BEGIN TRANSACTION
-
+	EXEC PROC_COUNT_PASSENGERS
+			@passagiernr = 1002, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 3
 ROLLBACK TRANSACTION
 
 ----------------------------------------------------------
