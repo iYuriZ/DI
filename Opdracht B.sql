@@ -223,11 +223,14 @@ BEGIN
 		> (SELECT max_aantal_psgrs
 		   FROM vlucht
 		   WHERE vluchtnummer = @vluchtnr)
-		THROW 50001, 'Passenger limit exceeded for that flight', 1
-
-		ELSE 
+		BEGIN
+			;THROW 50001, 'Passenger limit exceeded for that flight', 1
+		END
+		ELSE
+		BEGIN 
 			INSERT INTO PassagierVoorVlucht
 			 VALUES (@vluchtnr, @passagiernr, @balienr, @inchecktijd, @stoel)
+		END
 	END TRY
 	BEGIN CATCH
 		THROW;
