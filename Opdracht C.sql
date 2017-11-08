@@ -1,13 +1,6 @@
 /****************************************************************************/
 /*	 							Constraint 2								*/
 /****************************************************************************/
-
--- Read uncommitted
-SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-
--- Read committed
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
 CREATE TRIGGER TRG_NO_UPDATE ON Vlucht 
 AFTER UPDATE
 AS
@@ -63,22 +56,39 @@ BEGIN
 END
 GO
 
+----------------------------------------------------------
+-- Read uncommitted
+
+-- T1
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+BEGIN TRANSACTION
+	
+ROLLBACK TRANSACTION
+
+-- T2
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+BEGIN TRANSACTION
+	
+ROLLBACK TRANSACTION
+
+----------------------------------------------------------
+-- Read committed
+
+-- T1
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
+
+-- T2
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
+
 /****************************************************************************/
 /*	 							Constraint 4								*/
 /****************************************************************************/
-
--- Read uncommitted
-SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-
--- Read committed
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
--- Repeatable read
-SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
-
--- Serializable
-SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
-
 CREATE PROCEDURE dbo.PROC_COUNT_PASSENGERS
 	@vluchtnr INT,
 	@passagiernr INT,
@@ -109,3 +119,64 @@ BEGIN
 		THROW;
 	END CATCH
 END
+GO
+
+----------------------------------------------------------
+-- Read uncommitted
+
+-- T1
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
+
+-- T2
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
+
+----------------------------------------------------------
+-- Read committed
+
+-- T1
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
+
+-- T2
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
+
+----------------------------------------------------------
+-- Repeatable read
+
+-- T1
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
+
+-- T2
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
+
+----------------------------------------------------------
+-- Serializable
+
+-- T1
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
+
+-- T2
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+BEGIN TRANSACTION
+
+ROLLBACK TRANSACTION
