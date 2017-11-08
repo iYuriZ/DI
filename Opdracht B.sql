@@ -2,27 +2,17 @@
 /* 1.	Voor elke passagier zijn het stoelnummer en het						*/
 /* inchecktijdstip of beide niet ingevuld of beide wel ingevuld				*/
 /****************************************************************************/
-
-ALTER TABLE PassagierVoorVlucht ADD CONSTRAINT CHK_IncheckTijdStip_Stoel CHECK ((inchecktijdstip IS NULL AND stoel IS NULL) OR 
-
------------------------------------------
--- Controle of de populatie niet bestaat uit 'foute' records
-SELECT
-	*
-FROM
-	PassagierVoorVlucht
-WHERE
-	(inchecktijdstip IS NULL AND stoel IS NOT NULL)
-OR
-	(inchecktijdstip IS NOT NULL AND stoel IS NULL);
+ALTER TABLE PassagierVoorVlucht DROP CONSTRAINT IF EXISTS CHK_IncheckTijdStip_Stoel;
+GO
+ALTER TABLE PassagierVoorVlucht ADD CONSTRAINT CHK_IncheckTijdStip_Stoel CHECK ((inchecktijdstip IS NULL AND stoel IS NULL) OR
+																				(inchecktijdstip IS NOT NULL AND stoel IS NOT NULL));
+GO
 
 /****************************************************************************/
 /* 2.	Als er een passagier aan een vlucht is toegevoegd					*/ ----------------------------------------------------------------------------------
 /* mogen de gegevens van die vlucht niet meer gewijzigd worden.				*/ -- Read committed
 /****************************************************************************/
-
---Trigger
-DROP TRIGGER IF EXISTS dbo.TRG_NO_UPDATE
+DROP TRIGGER IF EXISTS TRG_NO_UPDATE
 GO
 CREATE TRIGGER TRG_NO_UPDATE ON Vlucht 
 AFTER UPDATE
@@ -77,20 +67,10 @@ BEGIN
 END
 GO
 
--- SELECT statements voor controle
-SELECT * FROM PassagierVoorVlucht
-
-SELECT pv.*
-FROM vlucht v INNER JOIN PassagierVoorVlucht pv
-ON v.vluchtnummer = pv.vluchtnummer
-WHERE v.vluchtnummer = 5314
-
 /****************************************************************************/
 /* 3.	Het inchecktijdstip van een passagier moet							*/
 /* voor het vertrektijdstip van een vlucht liggen.							*/
 /****************************************************************************/
-
--- Trigger
 DROP TRIGGER IF EXISTS trgPassagierVoorVlucht_inchecktijdstip_IU;
 GO
 CREATE TRIGGER trgPassagierVoorVlucht_inchecktijdstip_IU
@@ -148,25 +128,13 @@ BEGIN
 END
 GO
 
------------------------------------------
--- Controle of de populatie niet bestaat uit 'foute' records
-SELECT
-	p.passagiernummer,
-	p.vluchtnummer
-FROM
-	PassagierVoorVlucht p
-	INNER JOIN Vlucht v ON v.vluchtnummer = p.vluchtnummer
-WHERE
-	p.inchecktijdstip < v.vertrektijdstip;
-
 /****************************************************************************/
 /* 4.	Elke vlucht heeft volgens de specs een toegestaan maximum aantal 	*/ ----------------------------------------------------------------------
 /* passagiers. Zorg ervoor dat deze regel niet overschreden kan worden.		*/ -- Isolation level ophogen
 /****************************************************************************/ -- Index passagiervoorvlucht
-
-DROP PROCEDURE IF EXISTS dbo.PROC_COUNT_PASSENGERS
+DROP PROCEDURE IF EXISTS PROC_COUNT_PASSENGERS
 GO
-CREATE PROCEDURE dbo.PROC_COUNT_PASSENGERS
+CREATE PROCEDURE PROC_COUNT_PASSENGERS
 	@vluchtnr INT,
 	@passagiernr INT,
 	@balienr INT,
@@ -194,6 +162,7 @@ BEGIN
 		THROW;
 	END CATCH
 END
+GO
 
 /****************************************************************************/
 /* 5.	Per passagier mogen maximaal 3 objecten worden ingecheckt. 			*/
@@ -202,8 +171,6 @@ END
 /* overschrijden. Mocht de datapopulatie het aanbrengen van de constraint	*/
 /* niet toestaan, neem dan maatregelen in uw uitwerkingsdocument.			*/
 /****************************************************************************/	 
-
--- Trigger
 DROP TRIGGER IF EXISTS trgObject_aantal_gewicht_I;
 GO
 CREATE TRIGGER trgObject_aantal_gewicht_I
@@ -266,34 +233,7 @@ BEGIN
 		END
 	END CATCH
 END
-GO
-
------------------------------------------
--- Controle of de populatie niet bestaat uit 'foute' records
--- Aantal objecten > 3
-SELECT
-	passagiernummer, vluchtnummer
-FROM
-	Object
-GROUP BY
-	passagiernummer, vluchtnummer
-HAVING
-	COUNT(*) > 3;
-
--- Totaal gewicht meer dan toegestaan op een vlucht
-SELECT
-	o.passagiernummer,
-	o.vluchtnummer,
-	v.max_ppgewicht,
-	SUM(o.gewicht)
-FROM
-	Object o INNER JOIN Vlucht v ON v.vluchtnummer = o.vluchtnummer
-GROUP BY
-	o.passagiernummer,
-	o.vluchtnummer,
-	v.max_ppgewicht
-HAVING
-	SUM(o.gewicht) > v.max_ppgewicht;		 
+GO	 
 
 /****************************************************************************/
 /* 6.	Elke vlucht heeft volgens de specs een toegestaan maximum aantal 	*/
@@ -301,6 +241,8 @@ HAVING
 /* maximum gewicht dat een persoon mee mag nemen (mgp). Zorg ervoor dat		*/
 /* altijd geld map*mgp <= mt.												*/
 /****************************************************************************/
+DROP PROCEDURE IF EXISTS prc_VluchtMaxGewicht;
+GO
 CREATE PROCEDURE prc_VluchtMaxGewicht
 	@vluchtnummer INT,
 	@gatecode CHAR(1),
@@ -323,10 +265,6 @@ BEGIN
 	VALUES (@vluchtnummer, @gatecode, @maatschappijcode, @luchthavencode, @vliegtuigtype, @max_aantal_psgrs, @max_totaalgewicht, @max_ppgewicht, @vertrektijdstip, @aankomsttijdstip)
 END
 GO
-
--- SELECT statements voor controle
-SELECT *
-FROM vlucht
 
 /****************************************************************************/
 /* 7.	Voor een passagier is de combinatie (vlucht, stoel) natuurlijk		*/
@@ -394,20 +332,6 @@ BEGIN
 END
 GO
 
------------------------------------------
--- Controle of de populatie niet bestaat uit 'foute' records
-SELECT
-	vluchtnummer,
-	stoel,
-	COUNT(*) as [Aantal dubbele stoelen]
-FROM
-	PassagierVoorVlucht
-GROUP BY
-	vluchtnummer,
-	stoel
-HAVING
-	COUNT(*) >= 2;
-
 /****************************************************************************/
 /* 8.	De lijst met balies waar kan worden ingecheckt voor een vlucht is	*/
 /* beperkt. Niet alle balies zijn bruikbaar voor iedere bestemming, en niet */
@@ -418,9 +342,9 @@ HAVING
 /* uiteindelijk bij een van deze balies in. Let op; dit laatste is dus ook	*/
 /* een constraint.															*/
 /****************************************************************************/
-DROP TRIGGER IF EXISTS dbo.trg_IncheckenVoorVlucht_IU
+DROP TRIGGER IF EXISTS trg_IncheckenVoorVlucht_IU
 GO
-CREATE TRIGGER dbo.trg_IncheckenVoorVlucht_IU ON IncheckenVoorVlucht
+CREATE TRIGGER trg_IncheckenVoorVlucht_IU ON IncheckenVoorVlucht
 AFTER INSERT, UPDATE
 AS
 BEGIN
@@ -482,9 +406,9 @@ BEGIN
 END
 GO
 
-DROP TRIGGER IF EXISTS dbo.trg_PassagierVoorVlucht_IU
+DROP TRIGGER IF EXISTS trg_PassagierVoorVlucht_IU
 GO
-CREATE TRIGGER dbo.trg_PassagierVoorVlucht_IU ON PassagierVoorVlucht
+CREATE TRIGGER trg_PassagierVoorVlucht_IU ON PassagierVoorVlucht
 AFTER INSERT, UPDATE
 AS
 BEGIN
@@ -534,30 +458,11 @@ BEGIN
 END
 GO
 
--- SELECT statements voor controle
-SELECT *
-FROM IncheckenVoorBestemming
-
-SELECT * FROM
-Balie;
-
-SELECT *
-FROM IncheckenVoorVlucht
-
-SELECT *
-FROM IncheckenBijMaatschappij
-
-SELECT *
-FROM vlucht
-
-SELECT *
-FROM PassagierVoorVlucht
-
 /****************************************************************************/
 /* 9.	Elke maatschappij moet een balie hebben								*/
 /****************************************************************************/
-
--- Stored Procedure
+DROP PROCEDURE IF EXISTS prcMaatschappij_balie;
+GO
 CREATE PROCEDURE prcMaatschappij_balie
 	@balieNummer INT,
 	@maatschappijCode CHAR(2),
@@ -581,18 +486,6 @@ BEGIN
 	END CATCH
 END
 GO
-
------------------------------------------
--- Controle of de populatie niet bestaat uit 'foute' records
-SELECT
-	m.maatschappijcode,
-	m.naam,
-	ISNULL((SELECT COUNT(*)
-	 FROM IncheckenBijMaatschappij
-	 WHERE maatschappijcode = m.maatschappijcode
-	 GROUP BY maatschappijcode), 0) as [Aantal Balies]
-FROM
-	Maatschappij m;
 
 /****************************************************************************/
 /* 10.	Een passagier mag niet boeken op  vluchten in overlappende			*/
