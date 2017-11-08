@@ -3,23 +3,7 @@
 /* inchecktijdstip of beide niet ingevuld of beide wel ingevuld				*/
 /****************************************************************************/
 
--- Constraint
 ALTER TABLE PassagierVoorVlucht ADD CONSTRAINT CHK_IncheckTijdStip_Stoel CHECK ((inchecktijdstip IS NULL AND stoel IS NULL) OR 
-																				(inchecktijdstip IS NOT NULL AND stoel IS NOT NULL));
------------------------------------------
--- Werkende test
-BEGIN TRANSACTION
-INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-VALUES (850, 5315, 1, NULL, NULL),
-	   (850, 5316, 1, GETDATE(), 20);
-ROLLBACK TRANSACTION
-
--- Niet werkende test
-BEGIN TRANSACTION
-INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-VALUES (850, 5315, 1, GETDATE(), NULL),
-	   (850, 5316, 1, NULL, 20);
-ROLLBACK TRANSACTION
 
 -----------------------------------------
 -- Controle of de populatie niet bestaat uit 'foute' records
@@ -93,17 +77,6 @@ BEGIN
 END
 GO
 
--------------------------------------
--- Werkende test
-BEGIN TRAN
-UPDATE vlucht
-SET max_aantal_psgrs = 110 WHERE vluchtnummer = 5314
-ROLLBACK TRAN
-
--- Niet werkende test
-UPDATE vlucht
-SET max_aantal_psgrs = 110 WHERE vluchtnummer = 5317
-
 -- SELECT statements voor controle
 SELECT * FROM PassagierVoorVlucht
 
@@ -176,21 +149,6 @@ END
 GO
 
 -----------------------------------------
--- Werkende test
-BEGIN TRANSACTION
-UPDATE PassagierVoorVlucht SET incheckTijdstip = '2004-02-05 22:00' WHERE vluchtnummer = 5317; -- 5 records
-INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-VALUES (1002, 5317, 1, '2004-02-05 22:00', 1); -- 1 record
-ROLLBACK TRANSACTION
-
--- Niet werkende test
-BEGIN TRANSACTION
-UPDATE PassagierVoorVlucht SET incheckTijdstip = '2004-02-05 23:45' WHERE vluchtnummer = 5317; -- 5 records
-INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-VALUES (1002, 5317, 1, '2004-02-05 23:45', 1); -- 1 record
-ROLLBACK TRANSACTION
-
------------------------------------------
 -- Controle of de populatie niet bestaat uit 'foute' records
 SELECT
 	p.passagiernummer,
@@ -236,35 +194,6 @@ BEGIN
 		THROW;
 	END CATCH
 END
-
------------------------------------
--- test setup om de trigger (opgave 2.) te vermijden
-BEGIN TRANSACTION
-DROP TRIGGER IF EXISTS dbo.TRG_NO_UPDATE
-GO
-UPDATE vlucht SET max_aantal_psgrs = 10 WHERE vluchtnummer = 5317
-ROLLBACK TRANSACTION
-
--- er is nog plek in de vlucht
-BEGIN TRAN
-EXEC dbo.PROC_COUNT_PASSENGERS 850,  5316, 1, '2004-02-05 22:25', 97
-ROLLBACK TRAN
-
--- de vlucht is al vol
-EXEC dbo.PROC_COUNT_PASSENGERS 855,  5320, 3, '2004-02-05 22:25', 80
-
--- SELECT statements voor controle
-SELECT * 
-FROM PassagierVoorVlucht
-WHERE vluchtnummer = 5316
-
-SELECT max_aantal_psgrs
-FROM vlucht
-WHERE vluchtnummer = 5317
-
-SELECT COUNT(passagiernummer), vluchtnummer
-FROM PassagierVoorVlucht
-GROUP BY vluchtnummer
 
 /****************************************************************************/
 /* 5.	Per passagier mogen maximaal 3 objecten worden ingecheckt. 			*/
@@ -340,49 +269,6 @@ END
 GO
 
 -----------------------------------------
--- Werkende test
-BEGIN TRANSACTION
-INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer)
-VALUES (850, 5315, 1),
-	   (850, 5316, 1);
-
-INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-VALUES (850, 5315, 5),
-	   (850, 5315, 2),
-	   (850, 5315, 3); -- Meerdere records
-INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-VALUES (850, 5316, 3); -- 1 record
-ROLLBACK TRANSACTION
-
--- Niet werkende test
--- Te veel gewicht
-BEGIN TRANSACTION
-INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer)
-VALUES (850, 5315, 1),
-	   (850, 5316, 1),
-	   (1337, 5315, 1);
-
-INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-VALUES (850, 5315, 15),
-	   (850, 5315, 6),
-	   (1337, 5315, 8); -- Meerdere records
-INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-VALUES (850, 5316, 14); -- 1 record
-ROLLBACK TRANSACTION
-
--- Te veel objecten
-BEGIN TRANSACTION
-INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer)
-VALUES (850, 5315, 1);
-
-INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-VALUES (850, 5315, 1),
-	   (850, 5315, 2),
-	   (850, 5315, 5),
-	   (850, 5315, 2);
-ROLLBACK TRANSACTION
-
------------------------------------------
 -- Controle of de populatie niet bestaat uit 'foute' records
 -- Aantal objecten > 3
 SELECT
@@ -437,43 +323,6 @@ BEGIN
 	VALUES (@vluchtnummer, @gatecode, @maatschappijcode, @luchthavencode, @vliegtuigtype, @max_aantal_psgrs, @max_totaalgewicht, @max_ppgewicht, @vertrektijdstip, @aankomsttijdstip)
 END
 GO
-
----------------------------------
--- werkende test
-BEGIN TRANSACTION
-DECLARE @vertrek DATETIME = GETDATE() -2
-DECLARE @aankomst DATETIME = GETDATE() + 1
-
-EXEC prc_VluchtMaxGewicht
-	@vluchtnummer = 5319,
-	@gatecode = 'C',
-	@maatschappijcode = 'KL',
-	@luchthavencode = 'DUB',
-	@vliegtuigtype = 'Boeing 747',
-	@max_aantal_psgrs = 120,
-	@max_totaalgewicht = 2500,
-	@max_ppgewicht = 20,
-	@vertrektijdstip = @vertrek,
-	@aankomsttijdstip = @aankomst;
-ROLLBACK TRANSACTION
-
--- niet werkende test
-BEGIN TRANSACTION
-DECLARE @vertrek DATETIME = GETDATE() -2
-DECLARE @aankomst DATETIME = GETDATE() + 1
-
-EXEC prc_VluchtMaxGewicht
-	@vluchtnummer = 5319,
-	@gatecode = 'C',
-	@maatschappijcode = 'KL',
-	@luchthavencode = 'DUB',
-	@vliegtuigtype = 'Boeing 747',
-	@max_aantal_psgrs = 120,
-	@max_totaalgewicht = 20,
-	@max_ppgewicht = 20,
-	@vertrektijdstip = @vertrek,
-	@aankomsttijdstip = @aankomst;
-ROLLBACK TRANSACTION
 
 -- SELECT statements voor controle
 SELECT *
@@ -544,19 +393,6 @@ BEGIN
 	END CATCH
 END
 GO
-
------------------------------------------
--- Werkende test
-BEGIN TRANSACTION
-INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-VALUES (1002, 5317, 1, '2004-02-05 22:00', 20);
-ROLLBACK TRANSACTION
-
--- Niet werkende test
-BEGIN TRANSACTION
-INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-VALUES (1002, 5317, 1, '2004-02-05 22:00', 75);
-ROLLBACK TRANSACTION
 
 -----------------------------------------
 -- Controle of de populatie niet bestaat uit 'foute' records
@@ -698,27 +534,6 @@ BEGIN
 END
 GO
 
---------------------------------
--- werkende test
-BEGIN TRANSACTION
-DELETE FROM IncheckenVoorVlucht WHERE vluchtnummer = 5314;
-
-INSERT INTO IncheckenVoorVlucht
-VALUES (3, 5314);
-ROLLBACK TRANSACTION
-
-BEGIN TRANSACTION
-	INSERT INTO PassagierVoorVlucht
-	VALUES (850, 5314, 3, DATEDIFF(year, -10, GETDATE()), 4);
-ROLLBACK TRANSACTION
-
--- niet werkende test
-INSERT INTO IncheckenVoorVlucht
-VALUES (2, 5314);
-
-INSERT INTO PassagierVoorVlucht
-VALUES (850, 5314, 2, GETDATE(), 4);
-
 -- SELECT statements voor controle
 SELECT *
 FROM IncheckenVoorBestemming
@@ -766,23 +581,6 @@ BEGIN
 	END CATCH
 END
 GO
-
------------------------------------------
--- Werkende test
-BEGIN TRANSACTION
-EXEC prcMaatschappij_balie @balieNummer = 1, @maatschappijCode = 'TT', @maatschappijNaam = 'MaatschappijTest'
-
-SELECT *
-FROM Maatschappij m
-INNER JOIN IncheckenBijMaatschappij ibm ON ibm.maatschappijcode = m.maatschappijcode
-INNER JOIN Balie b ON b.balienummer = ibm.balienummer
-WHERE m.maatschappijcode = 'TT';
-ROLLBACK TRANSACTION
-
--- Niet werkende test
-BEGIN TRANSACTION
-	EXEC prcMaatschappij_balie @balieNummer = 999, @maatschappijCode = 'tt', @maatschappijNaam = 'MaatschappijTest'
-ROLLBACK TRANSACTION
 
 -----------------------------------------
 -- Controle of de populatie niet bestaat uit 'foute' records
@@ -876,38 +674,3 @@ BEGIN
 	END CATCH
 END
 GO
-
------------------------------------------
--- Werkende test
-BEGIN TRANSACTION
-	INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-	VALUES (850, 5316, 1, '2004-02-01 12:00:00', 3);
-
-	SELECT * FROM Vlucht
-	WHERE vluchtnummer IN (SELECT vluchtnummer
-						   FROM PassagierVoorVlucht
-						   WHERE passagiernummer = 850);
-ROLLBACK TRANSACTION
-
--- Niet werkende test
-BEGIN TRANSACTION
-	UPDATE vlucht SET
-	vertrektijdstip = '2004-01-31 23:37:00',
-	aankomsttijdstip = vertrektijdstip + 100 -- 100 dagen toevoegen aan aankomsttijdstip
-	WHERE vluchtnummer = 5317;
-
-	INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-	VALUES (1500, 5316, 1, '2004-02-01 12:00:00', 3);
-
-	SELECT * FROM Vlucht
-	WHERE vluchtnummer IN (SELECT vluchtnummer
-						   FROM PassagierVoorVlucht
-						   WHERE passagiernummer = 1500);
-ROLLBACK TRANSACTION
-
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Stored Procedures	: 3
--- Triggers				: 5
--- Constraints			: 1
-
