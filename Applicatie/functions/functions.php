@@ -1,6 +1,8 @@
 <?php
 
-function getBalies() {
+include 'app/database.php';
+
+function getBalies(): array {
 
 
         $db = connectDatabase();
@@ -8,20 +10,19 @@ function getBalies() {
         $balies = [];
 
         try {
-            $stmt = $db->prepare(
+            $stmt = $db->query(
                 'SELECT *
                 FROM Balie'
             );
-            $stmt->execute([
-
-            ]);
 
             while ($row = $stmt->fetch()) {
-                $balies += $row;
+                array_push($balies, $row);
             }
         } catch (PDOException $e) {
             http_response_code(500);
             die();
         }
+
+        return $balies;
     }
 ?>
