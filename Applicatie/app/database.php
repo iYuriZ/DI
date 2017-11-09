@@ -5,7 +5,7 @@
 		$databaseName = 'gelre_airport';
 
 		$databaseUsername = 'sa';
-		$databasePassword = '';
+		$databasePassword = 'localhost';
 
 		try {
 			$pdo = new PDO("sqlsrv:Server=$serverHost;Database=$databaseName", $databaseUsername, $databasePassword, [
@@ -14,7 +14,8 @@
 
 			return $pdo;
 		} catch(PDOException $exception) {
-			return $exception;
+			var_dump($exception);
+            return $exception;
 		}
 
 		return false;
@@ -24,7 +25,7 @@
 
         $db = connectDatabase();
 
-        
+        $balies = [];
 
         try {
             $stmt = $db->prepare(
@@ -36,7 +37,7 @@
             ]);
 
             while ($row = $stmt->fetch()) {
-                $highestBid = $row;
+                $balies += $row;
             }
         } catch (PDOException $e) {
             http_response_code(500);

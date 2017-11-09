@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>Home</title>
     <link rel="stylesheet" href="CSS/Style.css">
-    <link rel="stylesheet" href="/static/css/bootstrap.css">
+    <link rel="stylesheet" href="CSS/bootstrap.css">
 </head>
 
 <body>
@@ -13,6 +13,7 @@
 <?php
     require 'app/database.php';
 
+    $balies = getBalies();
 ?>
 
 <div class="row main-container">
@@ -21,8 +22,8 @@
     <main class="col-md-4">
         <h1>Balies</h1>
 
-        <?php foreach ($content['categories'] as $category) : ?>
-            <a href="/category.php?id=<?php echo $category['rubrieknummer'] ?>" class="list-group-item"><?php echo $category['rubrieknaam'] ?></a>
+        <?php foreach ($balies as $balie) : ?>
+            <a href="zoek.php" class="list-group-item"><?php echo $balie ?></a>
         <?php endforeach; ?>
     </main>
 
