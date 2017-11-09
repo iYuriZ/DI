@@ -23,7 +23,7 @@
         <h1>Balies</h1>
 
         <?php foreach ($balies as $balie) : ?>
-            <a href="zoek.php" class="list-group-item"><?php echo $balie['balienummer']?></a>
+            <a href="zoek.php?balienummer=<?php echo $balie['balienummer']?>" class="list-group-item"><?php echo $balie['balienummer']?></a>
         <?php endforeach; ?>
     </main>
 
