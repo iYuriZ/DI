@@ -1,3 +1,23 @@
+USE gelre_airport;
+GO
+
+-- Voor constraint 10
+UPDATE Vlucht
+SET aankomsttijdstip = vertrektijdstip + 1
+WHERE aankomsttijdstip IS NULL;
+GO
+
+UPDATE Vlucht
+SET vertrektijdstip = GETDATE() - 1
+WHERE vertrektijdstip IS NULL
+GO
+
+ALTER TABLE Vlucht
+ALTER COLUMN vertrektijdstip DATETIME NOT NULL;
+ALTER TABLE Vlucht
+ALTER COLUMN aankomsttijdstip DATETIME NOT NULL;
+GO
+
 /****************************************************************************/
 /* 1.	Voor elke passagier zijn het stoelnummer en het						*/
 /* inchecktijdstip of beide niet ingevuld of beide wel ingevuld				*/
@@ -39,7 +59,7 @@ BEGIN
 		IF EXISTS (SELECT pv.*
 				   FROM vlucht v INNER JOIN PassagierVoorVlucht pv
 				   ON v.vluchtnummer = pv.vluchtnummer
-				   WHERE v.vluchtnummer = (SELECT vluchtnummer
+				   WHERE v.vluchtnummer IN (SELECT vluchtnummer
 										   FROM inserted))
 		BEGIN
 			;THROW 50001, 'No update allowed when the flight has passengers', 1
@@ -490,21 +510,6 @@ GO
 /* table Vlucht in NOT NULL. Update eventueel vooraf de data zodat de 		*/
 /* NOT NULL	constraint niet overtreden wordt.								*/ -- Index passagierVoorVlucht (tijdstippen OF stoel (constraint 7))
 /****************************************************************************/
-UPDATE Vlucht
-SET aankomsttijdstip = vertrektijdstip + 1
-WHERE aankomsttijdstip IS NULL;
-
-UPDATE Vlucht
-SET vertrektijdstip = GETDATE() - 1
-WHERE vertrektijdstip IS NULL
-GO
-
-ALTER TABLE Vlucht
-ALTER COLUMN vertrektijdstip DATETIME NOT NULL;
-ALTER TABLE Vlucht
-ALTER COLUMN aankomsttijdstip DATETIME NOT NULL;
-GO
-
 DROP TRIGGER IF EXISTS trg_PassagierVoorVlucht_overlapping_IU;
 GO
 CREATE TRIGGER trg_PassagierVoorVlucht_overlapping_IU
