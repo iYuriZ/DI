@@ -11,7 +11,7 @@
 <body>
 
 <?php
-    require 'app/database.php';
+    require 'functions/functions.php';
 
     $balies = getBalies();
 ?>
@@ -23,7 +23,7 @@
         <h1>Balies</h1>
 
         <?php foreach ($balies as $balie) : ?>
-            <a href="zoek.php" class="list-group-item"><?php echo $balie ?></a>
+            <a href="zoek.php" class="list-group-item"><?php echo $balie['balienummer']?></a>
         <?php endforeach; ?>
     </main>
 
