@@ -51,7 +51,7 @@
         <h1><?= $passagier['naam'] ?></h1>
         <p>Check <?= $passagier['naam'] ?> in.</p>
 
-        <form method="POST" action="passagier-update.php?balienummer=<?= $_GET['balienummer'] ?>&vluchtnummer=<?= $_GET['vluchtnummer'] ?>&passagiernummer=<?= $_GET['passagiernummer'] ?>">
+        <form method="POST" action="/app/passagier-update.php?balienummer=<?= $_GET['balienummer'] ?>&vluchtnummer=<?= $_GET['vluchtnummer'] ?>&passagiernummer=<?= $_GET['passagiernummer'] ?>">
             <div class="form-group">
                 <label>Stoelnummer</label>
                 <input type="text" class="form-control" name="chair" value="<?= $passagier['stoel'] ?>"/>
@@ -87,7 +87,7 @@
                                 <?= $bagageObject['gewicht'] ?>
                             </td>
                             <td>
-                                <a href="bagage-verwijderen.php?balienummer=<?= $_GET['balienummer'] ?>&vluchtnummer=<?= $_GET['vluchtnummer'] ?>&passagiernummer=<?= $_GET['passagiernummer'] ?>&objectnummer=<?= $bagageObject['volgnummer'] ?>" class="btn btn-warning">Verwijderen</a>
+                                <a href="/app/bagage-verwijderen.php?balienummer=<?= $_GET['balienummer'] ?>&vluchtnummer=<?= $_GET['vluchtnummer'] ?>&passagiernummer=<?= $_GET['passagiernummer'] ?>&objectnummer=<?= $bagageObject['volgnummer'] ?>" class="btn btn-warning">Verwijderen</a>
                             </td>
                         </td>
                     <?php endforeach; ?>
@@ -101,13 +101,13 @@
 
         <h4>Bagage toevoegen</h4>
 
-        <?php if(isset($_GET['error']) && $_GET['error'] != ''): ?>
+        <?php if(isset($_GET['bagage_error']) && $_GET['bagage_error'] != ''): ?>
             <div class="alert alert-danger">
-                <?= $_GET['error'] ?>
+                <?= $_GET['bagage_error'] ?>
             </div>
         <?php endif; ?>
 
-        <form class="form-group" method="post" action="bagage-toevoegen.php?balienummer=<?= $_GET['balienummer'] ?>&vluchtnummer=<?= $_GET['vluchtnummer'] ?>&passagiernummer=<?= $_GET['passagiernummer'] ?>">
+        <form class="form-group" method="post" action="/app/bagage-toevoegen.php?balienummer=<?= $_GET['balienummer'] ?>&vluchtnummer=<?= $_GET['vluchtnummer'] ?>&passagiernummer=<?= $_GET['passagiernummer'] ?>">
             <div class="form-group">
                 <input type="text" class="form-control" name="gewicht" placeholder="Gewicht"/>
                 <br>

@@ -8,7 +8,7 @@ if(!isset($_GET['balienummer']) || !isset($_GET['vluchtnummer']) || !isset($_GET
     header('Location: /index.php');
 }
 
-require_once 'app/database.php';
+require_once 'database.php';
 $errorMessage = '';
 
 try {
@@ -23,4 +23,4 @@ try {
     $errorMessage = $pdoException->getMessage();
 }
 
-header('Location: /passagier.php?balienummer='.$_GET['balienummer'].'&vluchtnummer='.$_GET['vluchtnummer'].'&passagiernummer='.$_GET['passagiernummer'].'&error='.$errorMessage);
+header('Location: /passagier.php?balienummer='.$_GET['balienummer'].'&vluchtnummer='.$_GET['vluchtnummer'].'&passagiernummer='.$_GET['passagiernummer'].'&bagage_error='.$errorMessage);

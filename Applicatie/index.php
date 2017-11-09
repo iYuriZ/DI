@@ -1,3 +1,18 @@
+<?php
+    require_once 'app/database.php';
+
+    $db = connectDatabase();
+    $stmt = $db->query(
+        'SELECT *
+        FROM Balie'
+    );
+
+    $balies = [];
+    while ($row = $stmt->fetch()) {
+        array_push($balies, $row);
+    }
+?>
+
 <!doctype html>
 <html lang="en">
 
@@ -14,11 +29,11 @@
     <div class="col-md-4"></div>
 
     <main class="col-md-4">
-        <h1>Index</h1>
+        <h1>Balies</h1>
 
-        <div class="form-group">
-            <a class="btn btn-info" href="Balies.php">Balie Lijst</a>
-        </div>
+        <?php foreach ($balies as $balie) : ?>
+            <a href="zoek.php?balienummer=<?php echo $balie['balienummer']?>" class="list-group-item"><?php echo $balie['balienummer']?></a>
+        <?php endforeach; ?>
     </main>
 
     <div class="col-md-4"></div>

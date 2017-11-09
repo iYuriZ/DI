@@ -4,7 +4,7 @@ if(!isset($_GET['balienummer']) || !isset($_GET['vluchtnummer']) || !isset($_GET
     header('Location: /index.php');
 }
 
-require_once 'app/database.php';
+require_once 'database.php';
 
 $db = connectDatabase();
 $stmt = $db->prepare('DELETE FROM Object WHERE volgnummer = ?');
