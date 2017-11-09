@@ -1,5 +1,12 @@
 SET NOCOUNT ON
 
+-- Om te testen als user met bepaalde rechten
+EXECUTE AS USER = 'baliemedewerker'
+GO
+
+-- Om uit de impersonation te springen en weer alle rechten te hebben
+REVERT
+GO
 /****************************************************************************/
 /* 1.	Voor elke passagier zijn het stoelnummer en het						*/
 /* inchecktijdstip of beide niet ingevuld of beide wel ingevuld				*/
@@ -16,6 +23,7 @@ BEGIN TRANSACTION
 	END TRY
 	BEGIN CATCH
 		PRINT 'Constraint 1 - test 1: Gefaald'
+		;THROW
 	END CATCH
 ROLLBACK TRANSACTION
 
