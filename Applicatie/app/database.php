@@ -5,12 +5,11 @@
 		$databaseName = 'gelre_airport';
 
 		$databaseUsername = 'sa';
-		$databasePassword = 'localhost';
+		$databasePassword = 'barthos';
 
 		try {
-			$pdo = new PDO("sqlsrv:Server=$serverHost;Database=$databaseName", $databaseUsername, $databasePassword, [
-				PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION // Dit is om PDO errors te weergeven
-			]);
+			$pdo = new PDO("sqlsrv:Server=$serverHost;Database=$databaseName;ConnectionPooling=0", "$databaseUsername", "$databasePassword");
+			$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 			return $pdo;
 		} catch(PDOException $exception) {
