@@ -20,4 +20,28 @@
 		return false;
 	}
 
+	function getBalies() {
+
+        $db = connectDatabase();
+
+        
+
+        try {
+            $stmt = $db->prepare(
+                'SELECT *
+                FROM Balie'
+            );
+            $stmt->execute([
+
+            ]);
+
+            while ($row = $stmt->fetch()) {
+                $highestBid = $row;
+            }
+        } catch (PDOException $e) {
+            http_response_code(500);
+            die();
+        }
+    }
+
 ?>

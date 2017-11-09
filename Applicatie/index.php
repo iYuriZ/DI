@@ -5,20 +5,19 @@
     <meta charset="UTF-8">
     <title>Home</title>
     <link rel="stylesheet" href="CSS/Style.css">
-    <<link rel="stylesheet" href="/static/css/bootstrap.css">
+    <link rel="stylesheet" href="CSS/bootstrap.css">
 </head>
 
 <body>
-
 
 <div class="row main-container">
     <div class="col-md-4"></div>
 
     <main class="col-md-4">
-        <h1>Balies</h1>
+        <h1>Index</h1>
 
         <div class="form-group">
-            <button class="btn btn-default">Log In</button>
+            <a class="btn btn-info" href="Balies.php">Balie Lijst</a>
         </div>
     </main>
 
