@@ -16,4 +16,15 @@ GRANT SELECT ON passagier TO baliemedewerker
 GO
 GRANT SELECT ON balie TO baliemedewerker
 
+EXECUTE AS USER = 'baliemedewerker'
+GO
 
+-- werkt niet
+SELECT * FROM Gate
+
+-- werkt wel
+SELECT * FROM Balie
+
+-- stop met gebruiken van user.
+REVERT
+GO
