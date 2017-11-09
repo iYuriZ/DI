@@ -32,6 +32,9 @@ BEGIN
 END
 GO
 
+DELETE FROM PassagierVoorVlucht WHERE vluchtnummer = 5316;
+UPDATE Vlucht SET max_aantal_psgrs = 1 WHERE vluchtnummer = 5316;
+
 ----------------------------------------------------------
 -- Read uncommitted
 
@@ -44,7 +47,7 @@ BEGIN TRANSACTION
 			@balienr = 1,
 			@inchecktijd = '2004-01-31 22:25',
 			@stoel = 97
-ROLLBACK TRANSACTION
+COMMIT TRANSACTION
 
 -- T2
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -55,6 +58,12 @@ BEGIN TRANSACTION
 			@balienr = 1,
 			@inchecktijd = '2004-01-31 22:25',
 			@stoel = 3
+
+	SELECT *, (SELECT COUNT(*)
+				FROM PassagierVoorVlucht
+				WHERE vluchtnummer = v.vluchtnummer)
+	FROM Vlucht v
+	WHERE v.vluchtnummer = 5316;
 ROLLBACK TRANSACTION
 
 ----------------------------------------------------------
@@ -63,13 +72,23 @@ ROLLBACK TRANSACTION
 -- T1
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 BEGIN TRANSACTION
-
-ROLLBACK TRANSACTION
+	EXEC PROC_COUNT_PASSENGERS
+			@passagiernr = 850, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 97
+COMMIT TRANSACTION
 
 -- T2
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 BEGIN TRANSACTION
-
+	EXEC PROC_COUNT_PASSENGERS
+			@passagiernr = 1002, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 3
 ROLLBACK TRANSACTION
 
 ----------------------------------------------------------
@@ -78,13 +97,23 @@ ROLLBACK TRANSACTION
 -- T1
 SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
 BEGIN TRANSACTION
-
-ROLLBACK TRANSACTION
+	EXEC PROC_COUNT_PASSENGERS
+			@passagiernr = 850, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 97
+COMMIT TRANSACTION
 
 -- T2
 SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
 BEGIN TRANSACTION
-
+	EXEC PROC_COUNT_PASSENGERS
+			@passagiernr = 1002, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 3
 ROLLBACK TRANSACTION
 
 ----------------------------------------------------------
@@ -93,13 +122,23 @@ ROLLBACK TRANSACTION
 -- T1
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
 BEGIN TRANSACTION
-
-ROLLBACK TRANSACTION
+	EXEC PROC_COUNT_PASSENGERS
+			@passagiernr = 850, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 97
+COMMIT TRANSACTION
 
 -- T2
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
 BEGIN TRANSACTION
-
+	EXEC PROC_COUNT_PASSENGERS
+			@passagiernr = 1002, 
+			@vluchtnr = 5316,
+			@balienr = 1,
+			@inchecktijd = '2004-01-31 22:25',
+			@stoel = 3
 ROLLBACK TRANSACTION
 
 /****************************************************************************/
