@@ -5,7 +5,7 @@
 		$databaseName = 'gelre_airport';
 
 		$databaseUsername = 'sa';
-		$databasePassword = '';
+		$databasePassword = 'barthos';
 
 		try {
 			$pdo = new PDO("sqlsrv:Server=$serverHost;Database=$databaseName;ConnectionPooling=0", "$databaseUsername", "$databasePassword");

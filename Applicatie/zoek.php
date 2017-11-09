@@ -73,17 +73,17 @@
                         <?php foreach($passagiers as $passagier): ?>
                             <tr>
                                 <td>
-                                    <a href="passagier.php?passagiernummer=<?= $passagier['passagiernummer'] ?>">
+                                    <a href="passagier.php?passagiernummer=<?= $passagier['passagiernummer'] ?>&vluchtnummer=<?= $passagier['vluchtnummer'] ?>&balienummer=<?= $_GET['balienummer'] ?>">
                                         <?= $passagier['naam'] ?>
                                     </a>
                                 </td>
                                 <td>
-                                    <a href="passagier.php?passagiernummer=<?= $passagier['passagiernummer'] ?>">
+                                    <a href="passagier.php?passagiernummer=<?= $passagier['passagiernummer'] ?>&vluchtnummer=<?= $passagier['vluchtnummer'] ?>&balienummer=<?= $_GET['balienummer'] ?>">
                                         <?= $passagier['passagiernummer'] ?>
                                     </a>
                                 </td>
                                 <td>
-                                    <a href="passagier.php?passagiernummer=<?= $passagier['passagiernummer'] ?>">
+                                    <a href="passagier.php?passagiernummer=<?= $passagier['passagiernummer'] ?>&vluchtnummer=<?= $passagier['vluchtnummer'] ?>&balienummer=<?= $_GET['balienummer'] ?>">
                                         <?= $passagier['vluchtnummer'] ?>
                                     </a>
                                 </td>
