@@ -2,8 +2,8 @@
 /* 4.	Elke vlucht heeft volgens de specs een toegestaan maximum aantal 	*/
 /* passagiers. Zorg ervoor dat deze regel niet overschreden kan worden.		*/
 /****************************************************************************/
-
--- Index op: PassagierVoorVlucht
+CREATE NONCLUSTERED INDEX nci_PassagierVoorVlucht_vluchtnummer
+ON PassagierVoorVlucht (vluchtnummer);
 
 /****************************************************************************/
 /* 10.	Een passagier mag niet boeken op  vluchten in overlappende			*/
@@ -11,5 +11,5 @@
 /* table Vlucht in NOT NULL. Update eventueel vooraf de data zodat de 		*/
 /* NOT NULL	constraint niet overtreden wordt.								*/
 /****************************************************************************/
-
--- Index op: passagierVoorVlucht (tijdstippen OF stoel (constraint 7))
+CREATE NONCLUSTERED INDEX nci_Vlucht_tijdstippen
+ON Vlucht (vertrektijdstip, aankomsttijdstip);
