@@ -51,6 +51,12 @@
         <h1><?= $passagier['naam'] ?></h1>
         <p>Check <?= $passagier['naam'] ?> in.</p>
 
+        <?php if(isset($_GET['bagage_error']) && $_GET['passagier_error'] != ''): ?>
+            <div class="alert alert-danger">
+                <?= $_GET['passagier_error'] ?>
+            </div>
+        <?php endif; ?>
+
         <form method="POST" action="/app/passagier-update.php?balienummer=<?= $_GET['balienummer'] ?>&vluchtnummer=<?= $_GET['vluchtnummer'] ?>&passagiernummer=<?= $_GET['passagiernummer'] ?>">
             <div class="form-group">
                 <label>Stoelnummer</label>
