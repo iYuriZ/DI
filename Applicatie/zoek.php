@@ -55,7 +55,7 @@
 
         <form class="form-group row" method="GET">
             <input type="hidden" name="balienummer" value="<?= $_GET['balienummer'] ?>"/>
-            <input type="text" class="form-control" name="searchquery"/>
+            <input type="text" class="form-control" name="searchquery" value="<?= isset($_GET['searchquery']) ? $_GET['searchquery'] : '' ?>"/>
             <br>
             <button class="btn btn-info" name="btn_search">Zoek</button>
         </form>
@@ -67,12 +67,26 @@
                     <thead>
                         <th>Naam</th>
                         <th>Passagiernummer</th>
+                        <th>Vluchtnummer</th>
                     </thead>
                     <tbody>
                         <?php foreach($passagiers as $passagier): ?>
                             <tr>
-                                <td><?= $passagier['naam'] ?></td>
-                                <td><?= $passagier['passagiernummer'] ?></td>
+                                <td>
+                                    <a href="passagier.php?passagiernummer=<?= $passagier['passagiernummer'] ?>">
+                                        <?= $passagier['naam'] ?>
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="passagier.php?passagiernummer=<?= $passagier['passagiernummer'] ?>">
+                                        <?= $passagier['passagiernummer'] ?>
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="passagier.php?passagiernummer=<?= $passagier['passagiernummer'] ?>">
+                                        <?= $passagier['vluchtnummer'] ?>
+                                    </a>
+                                </td>
                             </td>
                         <?php endforeach; ?>
                     </tbody>
