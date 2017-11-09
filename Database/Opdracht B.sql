@@ -169,10 +169,24 @@ BEGIN
 		BEGIN
 			;THROW 50001, 'Passenger limit exceeded for that flight', 1
 		END
+			
+			
+		IF EXISTS (SELECT * FROM PassagierVoorVlucht WHERE passagiernummer = @passagiernr AND vluchtnummer = @vluchtnr)
+		BEGIN
+			UPDATE PassagierVoorVlucht
+			SET
+				balienummer = @balienr,
+				inchecktijdstip = @inchecktijd,
+				stoel = @stoel
+			WHERE
+				passagiernummer = @passagiernr
+			AND
+				vluchtnummer = @vluchtnr
+		END
 		ELSE
 		BEGIN
 			INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
-			VALUES (@passagiernr, @vluchtnr, @balienr, @inchecktijd, @stoel)
+			VALUES (@passagiernr, @vluchtnr, @balienr, @inchecktijd, @stoel);
 		END
 	END TRY
 	BEGIN CATCH
