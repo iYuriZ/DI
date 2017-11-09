@@ -4,6 +4,8 @@
 /* Created on:     27-1-2016		                            */
 /* DDL SCRIPT   												*/
 /*==============================================================*/
+USE master;
+GO
 
 IF DB_ID('gelre_airport') IS NOT NULL
      DROP DATABASE gelre_airport
