@@ -17,9 +17,9 @@
     <main class="col-md-4">
         <h1>Balies</h1>
 
-        <div class="form-group">
-            <button class="btn btn-default">Log In</button>
-        </div>
+            <div class="form-group">
+                <button class="btn btn-default">Log In</button>
+            </div>
     </main>
 
     <div class="col-md-4"></div>
