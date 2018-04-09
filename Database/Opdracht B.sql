@@ -43,19 +43,7 @@ BEGIN
 	SET NOCOUNT ON
 	SET XACT_ABORT ON
 
-	DECLARE @transactions AS INT = @@TRANCOUNT
-
     BEGIN TRY
-		-- Transactie beginnen / opslaan
-		IF @transactions > 0
-		BEGIN
-			SAVE TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			BEGIN TRANSACTION
-		END
-
 		IF EXISTS (SELECT pv.*
 				   FROM vlucht v INNER JOIN PassagierVoorVlucht pv
 				   ON v.vluchtnummer = pv.vluchtnummer
@@ -64,25 +52,9 @@ BEGIN
 		BEGIN
 			;THROW 50001, 'No update allowed when the flight has passengers', 1
 		END
-
-		-- Transactie doorvoeren
-		IF @transactions = 0
-		BEGIN
-			COMMIT TRANSACTION
-		END
     END TRY
     BEGIN CATCH
         ;THROW
-
-		-- Transactie terugdraaien
-		IF @transactions > 0
-		BEGIN
-			ROLLBACK TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			ROLLBACK TRANSACTION
-		END
     END CATCH
 END
 GO
@@ -104,18 +76,7 @@ BEGIN
 	SET NOCOUNT ON
 	SET XACT_ABORT ON
 
-	DECLARE @transactions AS INT = @@TRANCOUNT
-	
 	BEGIN TRY
-		-- Transactie beginnen / opslaan
-		IF @transactions > 0
-		BEGIN
-			SAVE TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			BEGIN TRANSACTION
-		END
 
 		-- Alle records van inserted joinen op vlucht en dan controleren of de vertrekTijdstip later is dan het incheckTijdstip
 		IF EXISTS(SELECT *
@@ -125,25 +86,9 @@ BEGIN
 		BEGIN
 			;THROW 50000, 'Het inchecktijdstip mag niet later zijn dan het vertrek tijdstip', 1
 		END
-
-		-- Transactie doorvoeren
-		IF @transactions = 0
-		BEGIN
-			COMMIT TRANSACTION
-		END
 	END TRY
 	BEGIN CATCH
 		;THROW
-
-		-- Transactie terugdraaien
-		IF @transactions > 0
-		BEGIN
-			ROLLBACK TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			ROLLBACK TRANSACTION
-		END
 	END CATCH
 END
 GO
@@ -213,20 +158,9 @@ BEGIN
 	IF @@ROWCOUNT = 0
 		RETURN
 	SET NOCOUNT ON
+	SET XACT_ABORT ON
 
-	DECLARE @transactions AS INT = @@TRANCOUNT
-	
 	BEGIN TRY
-		-- Transactie beginnen / opslaan
-		IF @transactions > 0
-		BEGIN
-			SAVE TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			BEGIN TRANSACTION
-		END
-
 		-- Aantal objecten > 3
 		IF EXISTS (SELECT passagiernummer, vluchtnummer
 				   FROM inserted
@@ -243,25 +177,9 @@ BEGIN
 		BEGIN
 			;THROW 50000, 'Het gewicht van de objecten mag niet hoger zijn dan het maximaal toegestane gewicht op een vlucht', 1
 		END
-
-		-- Transactie doorvoeren
-		IF @transactions = 0
-		BEGIN
-			COMMIT TRANSACTION
-		END
 	END TRY
 	BEGIN CATCH
 		;THROW
-
-		-- Transactie terugdraaien
-		IF @transactions > 0
-		BEGIN
-			ROLLBACK TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			ROLLBACK TRANSACTION
-		END
 	END CATCH
 END
 GO	 
@@ -316,20 +234,9 @@ BEGIN
 	IF @@ROWCOUNT = 0
 		RETURN
 	SET NOCOUNT ON
-	
-	DECLARE @transactions AS INT = @@TRANCOUNT
+	SET XACT_ABORT ON
 
 	BEGIN TRY
-		-- Transactie beginnen / opslaan
-		IF @transactions > 0
-		BEGIN
-			SAVE TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			BEGIN TRANSACTION
-		END
-
 		IF EXISTS (SELECT *
 				   FROM inserted i
 				   WHERE i.stoel IS NOT NULL
@@ -339,12 +246,6 @@ BEGIN
 				   HAVING COUNT(*) >= 2))
 		BEGIN
 			;THROW 50000, 'Een vlucht en stoelnummer moeten uniek zijn', 1
-		END
-
-		-- Transactie doorvoeren
-		IF @transactions = 0
-		BEGIN
-			COMMIT TRANSACTION
 		END
 	END TRY
 	BEGIN CATCH
@@ -382,19 +283,9 @@ BEGIN
 	IF @@ROWCOUNT = 0
 		RETURN
 	SET NOCOUNT ON
-
-	DECLARE @transactions AS INT = @@ROWCOUNT
+	SET XACT_ABORT ON
 
 	BEGIN TRY
-		-- Transactie beginnen / opslaan
-		IF @transactions > 0
-		BEGIN
-			SAVE TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			BEGIN TRANSACTION
-		END
 
 		IF EXISTS(SELECT * FROM inserted i
 				  -- Controleren of de vlucht de juiste maatschappij heeft
@@ -413,26 +304,10 @@ BEGIN
 									  WHERE v.vluchtnummer = i.vluchtnummer))
 		BEGIN
 			;THROW 50000, 'Not allowed to add this booth to this flight', 1
-		END
-		
-		-- Transactie doorvoeren
-		IF @transactions = 0
-		BEGIN
-			COMMIT TRANSACTION
-		END	  						
+		END 						
 	END TRY
 	BEGIN CATCH
 		;THROW
-
-		-- Transactie terugdraaien
-		IF @transactions > 0
-		BEGIN
-			ROLLBACK TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			ROLLBACK TRANSACTION
-		END
 	END CATCH
 END
 GO
@@ -446,19 +321,9 @@ BEGIN
 	IF @@ROWCOUNT = 0
 		RETURN
 	SET NOCOUNT ON
-
-	DECLARE @transactions AS INT = @@ROWCOUNT
+	SET XACT_ABORT ON
 
 	BEGIN TRY
-		-- Transactie beginnen / opslaan
-		IF @transactions > 0
-		BEGIN
-			SAVE TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			BEGIN TRANSACTION
-		END
 
 		IF NOT EXISTS (SELECT * FROM inserted i WHERE balienummer IN (SELECT balienummer FROM IncheckenVoorVlucht ivv
 																	  INNER JOIN Vlucht v ON v.vluchtnummer = ivv.vluchtnummer
@@ -466,25 +331,10 @@ BEGIN
 		BEGIN
 			;THROW 50000, 'Cannot check in on that booth', 1
 		END
-
-		-- Transactie doorvoeren
-		IF @transactions = 0
-		BEGIN
-			COMMIT TRANSACTION
-		END				  						
+			  						
 	END TRY
 	BEGIN CATCH
 		;THROW
-
-		-- Transactie terugdraaien
-		IF @transactions > 0
-		BEGIN
-			ROLLBACK TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			ROLLBACK TRANSACTION
-		END
 	END CATCH
 END
 GO
@@ -535,19 +385,9 @@ BEGIN
 	IF @@ROWCOUNT = 0
 		RETURN
 	SET NOCOUNT ON
-
-	DECLARE @transactions AS INT = @@ROWCOUNT
+	SET XACT_ABORT ON
 
 	BEGIN TRY
-		-- Transactie beginnen / opslaan
-		IF @transactions > 0
-		BEGIN
-			SAVE TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			BEGIN TRANSACTION
-		END
 
 		-- Controleren of de passagier geen vlucht wil boeken die overlapt in een vlucht waar hij al in zit
 		IF EXISTS (SELECT *
@@ -561,25 +401,9 @@ BEGIN
 		BEGIN
 			;THROW 50000, 'Cannot book an overlapping flight', 1
 		END
-
-		-- Transactie doorvoeren
-		IF @transactions = 0
-		BEGIN
-			COMMIT TRANSACTION
-		END
 	END TRY
 	BEGIN CATCH
 		;THROW
-
-		-- Transactie terugdraaien
-		IF @transactions > 0
-		BEGIN
-			ROLLBACK TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			ROLLBACK TRANSACTION
-		END
 	END CATCH
 END
 GO
