@@ -107,6 +107,15 @@ CREATE PROCEDURE PROC_COUNT_PASSENGERS
 	@stoel CHAR(3)
 AS
 BEGIN
+	SET NOCOUNT ON
+	SET XACT_ABORT OFF
+	DECLARE @TranCounter = @@TRANCOUNT
+	
+	IF @TranCounter > 0
+		SAVE TRANSACTION procTrans
+	ELSE
+		BEGIN TRANSACTION
+
 	BEGIN TRY
 		IF NOT EXISTS (SELECT * FROM Vlucht v WHERE
 					v.vluchtnummer = @vluchtnr AND
@@ -133,8 +142,16 @@ BEGIN
 			INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer, inchecktijdstip, stoel)
 			VALUES (@passagiernr, @vluchtnr, @balienr, @inchecktijd, @stoel);
 		END
+		
+		IF @TranCounter = 0 AND XACT_STATE() = 1
+			COMMIT TRANSACTION
+		
 	END TRY
 	BEGIN CATCH
+	
+		IF @TranCounter = 0 AND XACT_STATE() = 1
+			ROLLBACK TRANSACTION
+	
 		THROW;
 	END CATCH
 END
@@ -205,13 +222,34 @@ CREATE PROCEDURE prc_VluchtMaxGewicht
 	@aankomsttijdstip DATETIME
 AS
 BEGIN
-	IF (@max_aantal_psgrs * @max_ppgewicht > @max_totaalgewicht)
-	BEGIN
-		;THROW 50000, 'The maximum total weight is too low', 1
-	END
 
-	INSERT INTO Vlucht (vluchtnummer, gatecode, maatschappijcode, luchthavencode, vliegtuigtype, max_aantal_psgrs, max_totaalgewicht, max_ppgewicht, vertrektijdstip, aankomsttijdstip)
-	VALUES (@vluchtnummer, @gatecode, @maatschappijcode, @luchthavencode, @vliegtuigtype, @max_aantal_psgrs, @max_totaalgewicht, @max_ppgewicht, @vertrektijdstip, @aankomsttijdstip)
+	SET NOCOUNT ON
+	SET XACT_ABORT OFF
+	DECLARE @TranCounter = @@TRANCOUNT
+	
+	IF @TranCounter > 0
+		SAVE TRANSACTION procTrans
+	ELSE
+		BEGIN TRANSACTION
+
+	BEGIN TRY
+
+		IF (@max_aantal_psgrs * @max_ppgewicht > @max_totaalgewicht)
+		BEGIN
+			;THROW 50000, 'The maximum total weight is too low', 1
+		END
+
+		INSERT INTO Vlucht (vluchtnummer, gatecode, maatschappijcode, luchthavencode, vliegtuigtype, max_aantal_psgrs, max_totaalgewicht, max_ppgewicht, vertrektijdstip, aankomsttijdstip)
+		VALUES (@vluchtnummer, @gatecode, @maatschappijcode, @luchthavencode, @vliegtuigtype, @max_aantal_psgrs, @max_totaalgewicht, @max_ppgewicht, @vertrektijdstip, @aankomsttijdstip)
+		
+	END TRY
+	BEGIN CATCH
+	
+		IF @TranCounter = 0 AND XACT_STATE() = 1
+			ROLLBACK TRANSACTION
+			
+		;THROW
+	END CATCH
 END
 GO
 
@@ -350,6 +388,15 @@ CREATE PROCEDURE prcMaatschappij_balie
 	@maatschappijNaam VARCHAR(255)
 AS
 BEGIN
+	SET NOCOUNT ON
+	SET XACT_ABORT OFF
+	DECLARE @TranCounter = @@TRANCOUNT
+	
+	IF @TranCounter > 0
+		SAVE TRANSACTION procTrans
+	ELSE
+		BEGIN TRANSACTION
+		
 	BEGIN TRY
 		IF NOT EXISTS (SELECT balienummer FROM Balie WHERE balienummer = @balienummer)
 		BEGIN
@@ -363,7 +410,11 @@ BEGIN
 		VALUES (@balienummer, @maatschappijcode);
 	END TRY
 	BEGIN CATCH
-		;THROW
+	
+		IF @TranCounter = 0 AND XACT_STATE() = 1
+			ROLLBACK TRANSACTION
+	
+		THROW;
 	END CATCH
 END
 GO
