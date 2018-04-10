@@ -109,7 +109,7 @@ AS
 BEGIN
 	SET NOCOUNT ON
 	SET XACT_ABORT OFF
-	DECLARE @TranCounter = @@TRANCOUNT
+	DECLARE @TranCounter INT= @@TRANCOUNT
 	
 	IF @TranCounter > 0
 		SAVE TRANSACTION procTrans
@@ -225,7 +225,7 @@ BEGIN
 
 	SET NOCOUNT ON
 	SET XACT_ABORT OFF
-	DECLARE @TranCounter = @@TRANCOUNT
+	DECLARE @TranCounter INT= @@TRANCOUNT
 	
 	IF @TranCounter > 0
 		SAVE TRANSACTION procTrans
@@ -288,16 +288,6 @@ BEGIN
 	END TRY
 	BEGIN CATCH
 		;THROW
-
-		-- Transactie terugdraaien
-		IF @transactions > 0
-		BEGIN
-			ROLLBACK TRANSACTION procTransaction
-		END
-		ELSE
-		BEGIN
-			ROLLBACK TRANSACTION
-		END
 	END CATCH
 END
 GO
@@ -390,7 +380,7 @@ AS
 BEGIN
 	SET NOCOUNT ON
 	SET XACT_ABORT OFF
-	DECLARE @TranCounter = @@TRANCOUNT
+	DECLARE @TranCounter INT= @@TRANCOUNT
 	
 	IF @TranCounter > 0
 		SAVE TRANSACTION procTrans
