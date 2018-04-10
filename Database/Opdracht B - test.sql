@@ -167,18 +167,20 @@ BEGIN TRANSACTION
 	BEGIN TRY
 		INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer)
 		VALUES (850, 5315, 1),
-			   (850, 5316, 1);
+			   (850, 5316, 1),
+			   (850, 5318, 1);
 
 		INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-		VALUES (850, 5315, 5),
-			   (850, 5315, 2),
-			   (850, 5315, 3); -- Meerdere records
+		VALUES (850, 5315, 1),
+			   (850, 5316, 2),
+			   (850, 5318, 3); -- Meerdere records
 		INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
 		VALUES (850, 5316, 3); -- 1 record
 		
 		PRINT 'Constraint 5 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
+	;THROW
 		PRINT 'Constraint 5 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION

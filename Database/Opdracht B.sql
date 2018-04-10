@@ -169,7 +169,7 @@ GO
 CREATE TRIGGER trgObject_aantal_gewicht_I
 ON
 	Object
-AFTER INSERT
+AFTER INSERT, UPDATE
 AS
 BEGIN
 	IF @@ROWCOUNT = 0
@@ -178,28 +178,24 @@ BEGIN
 	SET XACT_ABORT ON
 
 	BEGIN TRY
-		-- Aantal objecten > 3
-		IF EXISTS (SELECT passagiernummer, vluchtnummer
-				   FROM inserted
-				   GROUP BY passagiernummer, vluchtnummer
-				   HAVING COUNT(*) > 3)
+
+		IF EXISTS (SELECT 1
+				   FROM Object o
+				   INNER JOIN inserted i
+				   ON o.vluchtnummer = i.vluchtnummer
+				   AND o.passagiernummer = i.passagiernummer
+				   GROUP BY o.vluchtnummer, o.passagiernummer
+				   HAVING COUNT(*) > 3
+				   OR SUM(o.gewicht) > (SELECT max_ppgewicht FROM Vlucht WHERE vluchtnummer = o.vluchtnummer))
 		BEGIN
-			;THROW 50000, 'Een passagier mag niet meer dan 3 objecten inchecken', 1
-		END
-		-- Totaal gewicht meer dan toegestaan op een vlucht
-		ELSE IF EXISTS (SELECT i.passagiernummer, i.vluchtnummer, SUM(i.gewicht)
-						FROM Inserted i INNER JOIN Vlucht v ON v.vluchtnummer = i.vluchtnummer
-						GROUP BY i.passagiernummer, i.vluchtnummer, v.max_ppgewicht
-						HAVING SUM(i.gewicht) > v.max_ppgewicht)
-		BEGIN
-			;THROW 50000, 'Het gewicht van de objecten mag niet hoger zijn dan het maximaal toegestane gewicht op een vlucht', 1
+			;THROW 50000, 'Een passagier mag niet meer dan 3 objecten inchecken en het totaalgewicht mag niet hoger liggen dan het toegestane gewicht', 1
 		END
 	END TRY
 	BEGIN CATCH
 		;THROW
 	END CATCH
 END
-GO	 
+GO
 
 /****************************************************************************/
 /* 6.	Elke vlucht heeft volgens de specs een toegestaan maximum aantal 	*/
