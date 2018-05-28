@@ -129,20 +129,20 @@ ROLLBACK TRANSACTION
 
 -- Niet werkende test
 BEGIN TRANSACTION
-	DELETE FROM PassagierVoorVlucht WHERE vluchtnummer = 5316;
-	UPDATE Vlucht SET max_aantal_psgrs = 1 WHERE vluchtnummer = 5316;
+	DELETE FROM PassagierVoorVlucht WHERE vluchtnummer = 5315;
+	UPDATE Vlucht SET max_aantal_psgrs = 1 WHERE vluchtnummer = 5315;
 
 	BEGIN TRY
 		EXEC PROC_COUNT_PASSENGERS
 			@passagiernr = 850, 
-			@vluchtnr = 5316,
+			@vluchtnr = 5315,
 			@balienr = 1,
 			@inchecktijd = '2004-01-31 22:25',
 			@stoel = 80
 
 		EXEC PROC_COUNT_PASSENGERS
 			@passagiernr = 1002, 
-			@vluchtnr = 5316,
+			@vluchtnr = 5315,
 			@balienr = 1,
 			@inchecktijd = '2004-01-31 22:25',
 			@stoel = 81
@@ -160,27 +160,21 @@ ROLLBACK TRANSACTION
 /* het maximaal per persoon toegestane gewicht op een vlucht niet			*/
 /* overschrijden. Mocht de datapopulatie het aanbrengen van de constraint	*/
 /* niet toestaan, neem dan maatregelen in uw uitwerkingsdocument.			*/
-/****************************************************************************/	
+/****************************************************************************/
 
 -- Werkende test
 BEGIN TRANSACTION
 	BEGIN TRY
-		INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer)
-		VALUES (850, 5315, 1),
-			   (850, 5316, 1),
-			   (850, 5318, 1);
 
-		INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-		VALUES (850, 5315, 1),
-			   (850, 5316, 2),
-			   (850, 5318, 3); -- Meerdere records
-		INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-		VALUES (850, 5316, 3); -- 1 record
+		EXEC Proc_InsertObject
+			@passagiernummer = 850,
+			@vluchtnummer = 5316,
+			@balienummer = 1,
+			@gewicht = 2
 		
 		PRINT 'Constraint 5 - test 1: Geslaagd'
 	END TRY
 	BEGIN CATCH
-	;THROW
 		PRINT 'Constraint 5 - test 1: Gefaald'
 	END CATCH
 ROLLBACK TRANSACTION
@@ -188,17 +182,12 @@ ROLLBACK TRANSACTION
 -- Niet werkende test 1
 BEGIN TRANSACTION
 	BEGIN TRY
-		INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer)
-		VALUES (850, 5315, 1),
-			   (850, 5316, 1),
-			   (1337, 5315, 1);
 
-		INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-		VALUES (850, 5315, 15),
-			   (850, 5315, 6),
-			   (1337, 5315, 8); -- Meerdere records
-		INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-		VALUES (850, 5316, 14); -- 1 record
+		EXEC Proc_InsertObject
+			@passagiernummer = 850,
+			@vluchtnummer = 5317,
+			@balienummer = 1,
+			@gewicht = 8
 		
 		PRINT 'Constraint 5 - test 2: Gefaald'
 	END TRY
@@ -210,14 +199,12 @@ ROLLBACK TRANSACTION
 -- Niet werkende test 2
 BEGIN TRANSACTION
 	BEGIN TRY
-		INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer)
-		VALUES (850, 5315, 1);
 
-		INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
-		VALUES (850, 5315, 1),
-			   (850, 5315, 2),
-			   (850, 5315, 5),
-			   (850, 5315, 2);
+		EXEC Proc_InsertObject
+			@passagiernummer = 850,
+			@vluchtnummer = 5317,
+			@balienummer = 1,
+			@gewicht = 9500
 
 		PRINT 'Constraint 5 - test 3: Gefaald'
 	END TRY
@@ -379,18 +366,6 @@ BEGIN TRANSACTION
 	END TRY
 	BEGIN CATCH
 		PRINT 'Constraint 9 - test 1: Gefaald'
-	END CATCH
-ROLLBACK TRANSACTION
-
--- Niet werkende test
-BEGIN TRANSACTION
-	BEGIN TRY
-		EXEC prcMaatschappij_balie @balieNummer = 999, @maatschappijCode = 'tt', @maatschappijNaam = 'MaatschappijTest'
-		
-		PRINT 'Constraint 9 - test 2: Gefaald'
-	END TRY
-	BEGIN CATCH
-		PRINT 'Constraint 9 - test 2: Geslaagd'
 	END CATCH
 ROLLBACK TRANSACTION
 

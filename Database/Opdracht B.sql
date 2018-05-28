@@ -1,6 +1,9 @@
 USE gelre_airport;
 GO
 
+-- Voor constraint 6
+UPDATE Vlucht SET max_totaalgewicht = 9000 WHERE max_aantal_psgrs * max_ppgewicht > max_totaalgewicht
+
 -- Voor constraint 10
 UPDATE Vlucht
 SET aankomsttijdstip = vertrektijdstip + 1
@@ -163,39 +166,60 @@ GO
 /* het maximaal per persoon toegestane gewicht op een vlucht niet			*/
 /* overschrijden. Mocht de datapopulatie het aanbrengen van de constraint	*/
 /* niet toestaan, neem dan maatregelen in uw uitwerkingsdocument.			*/
-/****************************************************************************/	 
-DROP TRIGGER IF EXISTS trgObject_aantal_gewicht_I;
+/****************************************************************************/
+
+DROP PROCEDURE IF EXISTS proc_InsertObject
 GO
-CREATE TRIGGER trgObject_aantal_gewicht_I
-ON
-	Object
-AFTER INSERT, UPDATE
+CREATE PROCEDURE Proc_InsertObject
+	@passagiernummer INT,
+	@vluchtnummer INT,
+	@balienummer INT,
+	@gewicht INT
 AS
 BEGIN
-	IF @@ROWCOUNT = 0
-		RETURN
 	SET NOCOUNT ON
-	SET XACT_ABORT ON
+	SET XACT_ABORT OFF
+	DECLARE @TranCounter INT = @@TRANCOUNT
+
+	IF @TranCounter > 0
+		SAVE TRANSACTION procTrans
+	ELSE
+		BEGIN TRANSACTION
 
 	BEGIN TRY
 
-		IF EXISTS (SELECT 1
-				   FROM Object o
-				   INNER JOIN inserted i
-				   ON o.vluchtnummer = i.vluchtnummer
-				   AND o.passagiernummer = i.passagiernummer
-				   GROUP BY o.vluchtnummer, o.passagiernummer
-				   HAVING COUNT(*) > 3
-				   OR SUM(o.gewicht) > (SELECT max_ppgewicht FROM Vlucht WHERE vluchtnummer = o.vluchtnummer))
-		BEGIN
-			;THROW 50000, 'Een passagier mag niet meer dan 3 objecten inchecken en het totaalgewicht mag niet hoger liggen dan het toegestane gewicht', 1
+		IF EXISTS (SELECT 1 FROM Object o
+							 WHERE o.vluchtnummer = @vluchtnummer
+							 AND o.passagiernummer = @passagiernummer
+							 GROUP BY o.passagiernummer, o.vluchtnummer
+							 HAVING COUNT(*) > 3
+							 OR SUM (o.gewicht) > (SELECT max_ppgewicht FROM Vlucht WHERE vluchtnummer = @vluchtnummer))
+			BEGIN
+				;THROW 50000, 'Een passagier mag niet meer dan 3 objecten inchecken en het totaalgewicht mag niet hoger liggen dan het toegestaen gewicht', 1
+			END
+		ELSE BEGIN
+
+			INSERT INTO PassagierVoorVlucht (passagiernummer, vluchtnummer, balienummer)
+			VALUES (@passagiernummer, @vluchtnummer, @balienummer);
+
+			INSERT INTO Object (passagiernummer, vluchtnummer, gewicht)
+			VALUES (@passagiernummer, @vluchtnummer, @gewicht);
+
 		END
+
+		IF @TranCounter = 0 AND XACT_STATE() = 1
+			COMMIT TRANSACTION
+
 	END TRY
 	BEGIN CATCH
-		;THROW
+
+		IF @TranCounter = 0 AND XACT_STATE() = 1
+			ROLLBACK TRANSACTION
+
+    ;THROW
+
 	END CATCH
 END
-GO
 
 /****************************************************************************/
 /* 6.	Elke vlucht heeft volgens de specs een toegestaan maximum aantal 	*/
@@ -203,12 +227,6 @@ GO
 /* maximum gewicht dat een persoon mee mag nemen (mgp). Zorg ervoor dat		*/
 /* altijd geld map*mgp <= mt.												*/
 /****************************************************************************/
-
--- Er zit een record tussen die deze constraint overschrijdt
--- dus zet het gewicht van dat record op 9000
-ALTER TABLE Vlucht DISABLE TRIGGER TRG_NO_UPDATE; GO
-UPDATE Vlucht SET max_totaalgewicht = 9000 WHERE max_aantal_psgrs * max_ppgewicht > max_totaalgewicht
-ALTER TABLE Vlucht ENABLE TRIGGER TRG_NO_UPDATE; GO
 
 ALTER TABLE Vlucht DROP CONSTRAINT IF EXISTS CHK_MaxAantalGewicht;
 GO
