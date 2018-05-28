@@ -88,8 +88,12 @@ HAVING
 /* maximum gewicht dat een persoon mee mag nemen (mgp). Zorg ervoor dat		*/
 /* altijd geld map*mgp <= mt.												*/
 /****************************************************************************/
-SELECT *
-FROM vlucht
+SELECT
+	*
+FROM
+	vlucht
+WHERE
+	max_aantal_psgrs * max_ppgewicht > max_totaalgewicht
 
 /****************************************************************************/
 /* 7.	Voor een passagier is de combinatie (vlucht, stoel) natuurlijk		*/

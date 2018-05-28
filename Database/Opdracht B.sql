@@ -204,9 +204,15 @@ GO
 /* altijd geld map*mgp <= mt.												*/
 /****************************************************************************/
 
+-- Er zit een record tussen die deze constraint overschrijdt
+-- dus zet het gewicht van dat record op 9000
+ALTER TABLE Vlucht DISABLE TRIGGER TRG_NO_UPDATE; GO
+UPDATE Vlucht SET max_totaalgewicht = 9000 WHERE max_aantal_psgrs * max_ppgewicht > max_totaalgewicht
+ALTER TABLE Vlucht ENABLE TRIGGER TRG_NO_UPDATE; GO
+
 ALTER TABLE Vlucht DROP CONSTRAINT IF EXISTS CHK_MaxAantalGewicht;
 GO
-ALTER TABLE Vlucht ADD CONSTRAINT CHK_MaxAantalGewicht CHECK (max_aantal_psgrs * max_ppgewicht > max_totaalgewicht);
+ALTER TABLE Vlucht ADD CONSTRAINT CHK_MaxAantalGewicht CHECK (max_aantal_psgrs * max_ppgewicht < max_totaalgewicht);
 GO
 
 /****************************************************************************/
