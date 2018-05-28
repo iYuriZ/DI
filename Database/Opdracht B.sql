@@ -203,50 +203,10 @@ GO
 /* maximum gewicht dat een persoon mee mag nemen (mgp). Zorg ervoor dat		*/
 /* altijd geld map*mgp <= mt.												*/
 /****************************************************************************/
-DROP PROCEDURE IF EXISTS prc_VluchtMaxGewicht;
+
+ALTER TABLE Vlucht DROP CONSTRAINT IF EXISTS CHK_MaxAantalGewicht;
 GO
-CREATE PROCEDURE prc_VluchtMaxGewicht
-	@vluchtnummer INT,
-	@gatecode CHAR(1),
-	@maatschappijcode CHAR(2),
-	@luchthavencode CHAR(3),
-	@vliegtuigtype CHAR(30),
-	@max_aantal_psgrs NUMERIC(5,0),
-	@max_totaalgewicht NUMERIC(5,0),
-	@max_ppgewicht NUMERIC(5,2),
-	@vertrektijdstip DATETIME,
-	@aankomsttijdstip DATETIME
-AS
-BEGIN
-
-	SET NOCOUNT ON
-	SET XACT_ABORT OFF
-	DECLARE @TranCounter INT= @@TRANCOUNT
-	
-	IF @TranCounter > 0
-		SAVE TRANSACTION procTrans
-	ELSE
-		BEGIN TRANSACTION
-
-	BEGIN TRY
-
-		IF (@max_aantal_psgrs * @max_ppgewicht > @max_totaalgewicht)
-		BEGIN
-			;THROW 50000, 'The maximum total weight is too low', 1
-		END
-
-		INSERT INTO Vlucht (vluchtnummer, gatecode, maatschappijcode, luchthavencode, vliegtuigtype, max_aantal_psgrs, max_totaalgewicht, max_ppgewicht, vertrektijdstip, aankomsttijdstip)
-		VALUES (@vluchtnummer, @gatecode, @maatschappijcode, @luchthavencode, @vliegtuigtype, @max_aantal_psgrs, @max_totaalgewicht, @max_ppgewicht, @vertrektijdstip, @aankomsttijdstip)
-		
-	END TRY
-	BEGIN CATCH
-	
-		IF @TranCounter = 0 AND XACT_STATE() = 1
-			ROLLBACK TRANSACTION
-			
-		;THROW
-	END CATCH
-END
+ALTER TABLE Vlucht ADD CONSTRAINT CHK_MaxAantalGewicht CHECK (max_aantal_psgrs * max_ppgewicht > max_totaalgewicht);
 GO
 
 /****************************************************************************/

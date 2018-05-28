@@ -91,6 +91,56 @@ BEGIN
 END
 GO
 
+DROP PROCEDURE prcCreateHistoryTablesForDatabase
+GO
+CREATE PROCEDURE prcCreateHistoryTablesForDatabase
+	@databaseName VARCHAR (100)
+AS
+BEGIN
+	SET NOCOUNT ON
+	SET XACT_ABORT ON
+	
+	-- Variabelen initialiseren
+	DECLARE @transactions AS INT = @@TRANCOUNT
+	DECLARE @columns AS VARCHAR (MAX) = ''
+	DECLARE @sqlQuery AS VARCHAR (MAX) = ''
+
+	BEGIN TRY
+		-- Transactie beginnen / opslaan
+		IF @transactions > 0
+		BEGIN
+			SAVE TRANSACTION procTransaction
+		END
+		ELSE
+		BEGIN
+			BEGIN TRANSACTION
+		END
+		
+		PRINT @sqlQuery
+		EXEC (@sqlQuery)
+		
+		-- Transactie doorvoeren
+		IF @transactions = 0
+		BEGIN
+			COMMIT TRANSACTION
+		END
+	END TRY
+	BEGIN CATCH
+		RAISERROR ('Something went wrong creating the history table', 16, 1)
+		
+		-- Transactie terugdraaien
+		IF @transactions > 0
+		BEGIN
+			ROLLBACK TRANSACTION procTransaction
+		END
+		ELSE
+		BEGIN
+			ROLLBACK TRANSACTION
+		END
+	END CATCH
+END
+GO
+
 -- 'Normale' test
 EXEC prcCreateHistoryTable @tableName = 'vlucht'
 

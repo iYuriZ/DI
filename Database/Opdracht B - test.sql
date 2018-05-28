@@ -240,17 +240,9 @@ DECLARE @aankomst DATETIME = GETDATE() + 1
 -- werkende test
 BEGIN TRANSACTION
 	BEGIN TRY
-		EXEC prc_VluchtMaxGewicht
-			@vluchtnummer = 5319,
-			@gatecode = 'C',
-			@maatschappijcode = 'KL',
-			@luchthavencode = 'DUB',
-			@vliegtuigtype = 'Boeing 747',
-			@max_aantal_psgrs = 120,
-			@max_totaalgewicht = 2500,
-			@max_ppgewicht = 20,
-			@vertrektijdstip = @vertrek,
-			@aankomsttijdstip = @aankomst;
+	
+		INSERT INTO Vlucht (vluchtnummer, gatecode, maatschappijcode, luchthavencode, vliegtuigtype, max_aantal_psgrs, max_totaalgewicht, max_ppgewicht, vertrektijdstip, aankomsttijdstip)
+		VALUES (5319, 'C', 'KL', 'DUB', 'Boeing 747', 120, 2500, 20, @vertrek, @aankomst);
 			
 		PRINT 'Constraint 6 - test 1: Geslaagd'
 	END TRY
@@ -262,17 +254,9 @@ ROLLBACK TRANSACTION
 -- niet werkende test
 BEGIN TRANSACTION
 	BEGIN TRY
-		EXEC prc_VluchtMaxGewicht
-			@vluchtnummer = 5319,
-			@gatecode = 'C',
-			@maatschappijcode = 'KL',
-			@luchthavencode = 'DUB',
-			@vliegtuigtype = 'Boeing 747',
-			@max_aantal_psgrs = 120,
-			@max_totaalgewicht = 20,
-			@max_ppgewicht = 20,
-			@vertrektijdstip = @vertrek,
-			@aankomsttijdstip = @aankomst;
+	
+		INSERT INTO Vlucht (vluchtnummer, gatecode, maatschappijcode, luchthavencode, vliegtuigtype, max_aantal_psgrs, max_totaalgewicht, max_ppgewicht, vertrektijdstip, aankomsttijdstip)
+		VALUES (5319, 'C', 'KL', 'DUB', 'Boeing 747', 120, 20, 20, @vertrek, @aankomst);
 			
 		PRINT 'Constraint 6 - test 2: Gefaald'
 	END TRY
