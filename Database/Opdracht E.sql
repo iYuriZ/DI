@@ -1,6 +1,9 @@
-DROP PROCEDURE prcCreateHistoryTable
+USE gelre_airport;go
+
+DROP PROCEDURE IF EXISTS prcCreateHistoryTable
 GO
 CREATE PROCEDURE prcCreateHistoryTable
+	@databaseName VARCHAR(100),
 	@tableName VARCHAR (100)
 AS
 BEGIN
@@ -60,7 +63,8 @@ BEGIN
 		WHERE TABLE_NAME = @tableName;
 
 		-- Extra kolommen toevoegen aan query
-		SET @sqlQuery = 'CREATE TABLE ' + @tableName + 'History (' + @columns +
+		SET @sqlQuery = 'DROP TABLE IF EXISTS ' + @databaseName + '.dbo.' + @tableName +'History;
+		 CREATE TABLE ' + @databaseName + '.dbo.' + @tableName + 'History (' + @columns +
 		'timestamp datetime NOT NULL DEFAULT GETDATE(),
 		 actie CHAR(6) NOT NULL,
 		 
@@ -76,7 +80,8 @@ BEGIN
 		END
 	END TRY
 	BEGIN CATCH
-		RAISERROR ('Something went wrong creating the history table', 16, 1)
+		;THROW
+		--RAISERROR ('Something went wrong creating the history table', 16, 1)
 		
 		-- Transactie terugdraaien
 		IF @transactions > 0
@@ -91,7 +96,11 @@ BEGIN
 END
 GO
 
-DROP PROCEDURE prcCreateHistoryTablesForDatabase
+
+--
+-- Create a history table for each table in the given database
+--
+DROP PROCEDURE IF EXISTS prcCreateHistoryTablesForDatabase
 GO
 CREATE PROCEDURE prcCreateHistoryTablesForDatabase
 	@databaseName VARCHAR (100)
@@ -102,8 +111,7 @@ BEGIN
 	
 	-- Variabelen initialiseren
 	DECLARE @transactions AS INT = @@TRANCOUNT
-	DECLARE @columns AS VARCHAR (MAX) = ''
-	DECLARE @sqlQuery AS VARCHAR (MAX) = ''
+	DECLARE @query AS VARCHAR(MAX)
 
 	BEGIN TRY
 		-- Transactie beginnen / opslaan
@@ -115,10 +123,29 @@ BEGIN
 		BEGIN
 			BEGIN TRANSACTION
 		END
-		
-		PRINT @sqlQuery
-		EXEC (@sqlQuery)
-		
+
+		SET @query = '
+	  DECLARE @tableName AS VARCHAR(100)
+		DECLARE db_cursor CURSOR LOCAL FOR
+
+	  SELECT TABLE_NAME
+		FROM ' + @databaseName + '.INFORMATION_SCHEMA.TABLES
+		WHERE TABLE_TYPE = ''BASE TABLE''
+
+		OPEN db_cursor
+	  FETCH NEXT FROM db_cursor INTO @tableName
+
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+			EXEC prcCreateHistoryTable @databaseName = '+@databaseName+', @tableName=@tableName
+			FETCH NEXT FROM db_cursor INTO @tableName
+		END
+
+		CLOSE db_cursor
+		DEALLOCATE db_cursor'
+
+		EXEC (@query)
+
 		-- Transactie doorvoeren
 		IF @transactions = 0
 		BEGIN
@@ -126,7 +153,8 @@ BEGIN
 		END
 	END TRY
 	BEGIN CATCH
-		RAISERROR ('Something went wrong creating the history table', 16, 1)
+		;THROW
+		--RAISERROR ('Something went wrong creating the history database', 16, 1)
 		
 		-- Transactie terugdraaien
 		IF @transactions > 0
@@ -142,9 +170,9 @@ END
 GO
 
 -- 'Normale' test
-EXEC prcCreateHistoryTable @tableName = 'vlucht'
+EXEC prcCreateHistoryTablesForDatabase @databaseName = 'gelre_airport'
 
 -- Nested transactie test
 BEGIN TRANSACTION
-	EXEC prcCreateHistoryTable @tableName = 'passagier'
+	EXEC prcCreateHistoryTablesForDatabase @databaseName = 'gelre_airport'
 COMMIT TRANSACTION
